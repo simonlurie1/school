@@ -152,7 +152,7 @@ const v = (name, m, f) => FEM.has(name) ? f : m;
 /* ===== בונים בסיסיים (משותפים לכמה כיתות) ===== */
 function Q(o) { o.hint = o.hint || ''; o.ex = o.ex || ''; return o; }
 function exprQ(e, prompt, hint, opts = {}) { // שאלה "כמה זה" עם משבצת
-  const ans = r2(Function('return ' + e)());
+  const ans = +Function('return ' + e)().toFixed(6); // לא r2: חילוק ב־1000 צריך עד 5 ספרות אחרי הנקודה
   return Q({ t: 'num', prompt, vis: eq(`${E(e)} = ${BOX}`), ans, dec: !Number.isInteger(ans) || opts.dec, ex: `${E(e).replace(BOX, '?')} = ${ans}`, hint, data: { k: 'expr', e }, ...opts });
 }
 function missQ(l, r, prompt, hint, ans) { // משוואה עם משבצת במקום אחד
@@ -169,7 +169,7 @@ function vertQ(a, b, op) {
     data: { k: 'expr', e: `${a}${op === '+' ? '+' : '-'}${b}` } });
 }
 function wordQ(prompt, e, ex, hint, consts = [], help) {
-  const ans = r2(Function('return ' + e)());
+  const ans = +Function('return ' + e)().toFixed(6); // לא r2: חילוק ב־1000 צריך עד 5 ספרות אחרי הנקודה
   return Q({ t: 'num', prompt, vis: '', ans, dec: !Number.isInteger(ans), ex, hint, help, data: { k: 'expr', e, word: true, consts } });
 }
 function seqQ(start, d, len, lo, hi) {
