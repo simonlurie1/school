@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>משבצת</title>
 <meta name="description" content="משבצת: תרגול מתמטיקה לכיתות א'–ו' לפי תוכנית הלימודים">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#eef3fa" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111a33" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="משבצת">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -459,6 +468,10 @@ document.addEventListener('keydown',e=>{
   if(m){const g=+m[1],ids=m[2].split('.').filter(id=>GRADES[g].topics.some(t=>t.id===id));if(ids.length){GRADE=g;store('msh-grade',g);start(ids,'__custom');return}}
   if(GRADE&&GRADES[GRADE])menu();else home();
 })();
+
+/* ---------- אפליקציה: עבודה גם בלי אינטרנט ---------- */
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 
 </body></html>
