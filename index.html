@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>משבצת</title>
+<meta name="description" content="משבצת: תרגול מתמטיקה לכיתות א'–ו' לפי תוכנית הלימודים">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Secular+One&family=Varela+Round&display=swap">
+<style>
+/* Layout: a squared math-notebook page (red margin on the right, RTL). Grade → topic → one question at a time with a keypad. */
+:root{
+  --bg:#eef3fa;--grid:#d6e1ef;--paper:#fbfdff;--ink:#1c2850;--ink-soft:#56648a;--margin:#e0485a;--hl:#ffe066;
+  --ok:#14966a;--ok-bg:#dcf5ea;--bad:#d23a4c;--bad-bg:#fde3e6;
+  --c-num:#0e7c86;--c-ops:#1b9e77;--c-eq:#d0701a;--c-div:#7a4fd6;--c-word:#a8650a;--c-geo:#2f74d0;--c-meas:#c0392b;--c-chart:#3d7d2a;--c-mix:#d23a7a;
+  --on-tc:#ffffff;--shape-fill:#e3edfb;--key:#ffffff;--key-edge:#c3cfe2;--coin:#f3d27a;
+  --font-display:"Secular One","Arial Hebrew",system-ui,sans-serif;
+  --font-body:"Varela Round","Arial Hebrew",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111a33;--grid:#1b2847;--paper:#17223f;--ink:#eaf0ff;--ink-soft:#a3b0d4;--margin:#ff6b7c;--hl:#8a7420;
+  --ok:#3fd19b;--ok-bg:#123b30;--bad:#ff7486;--bad-bg:#47202a;
+  --c-num:#4cc9d3;--c-ops:#3fcf9f;--c-eq:#ffa04a;--c-div:#a98bff;--c-word:#f0c25a;--c-geo:#6aa8ff;--c-meas:#ff7a6b;--c-chart:#86d466;--c-mix:#ff74b0;
+  --on-tc:#111a33;--shape-fill:#21345e;--key:#1f2d52;--key-edge:#2e4170;--coin:#8a6d1f;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111a33;--grid:#1b2847;--paper:#17223f;--ink:#eaf0ff;--ink-soft:#a3b0d4;--margin:#ff6b7c;--hl:#8a7420;
+  --ok:#3fd19b;--ok-bg:#123b30;--bad:#ff7486;--bad-bg:#47202a;
+  --c-num:#4cc9d3;--c-ops:#3fcf9f;--c-eq:#ffa04a;--c-div:#a98bff;--c-word:#f0c25a;--c-geo:#6aa8ff;--c-meas:#ff7a6b;--c-chart:#86d466;--c-mix:#ff74b0;
+  --on-tc:#111a33;--shape-fill:#21345e;--key:#1f2d52;--key-edge:#2e4170;--coin:#8a6d1f;color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:17px;line-height:1.5;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 32px}
+.wrap{max-width:660px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font-family:var(--font-display);font-weight:400;font-size:clamp(28px,7vw,40px);margin:0;line-height:1.1}
+h1 .hl{background:linear-gradient(transparent 55%,var(--hl) 55%);padding:0 4px}
+h2{font-family:var(--font-display);font-weight:400;font-size:22px;margin:0}
+.sub{color:var(--ink-soft);margin:2px 0 0;font-size:15px}
+.ltr{direction:ltr;unicode-bidi:isolate;display:inline-block}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--c-geo);outline-offset:2px}
+.page{background:var(--paper);border-radius:6px;position:relative;box-shadow:0 1px 0 var(--key-edge),0 10px 30px -18px rgba(20,30,70,.45);padding:20px 34px 22px 18px}
+.page::before{content:"";position:absolute;top:0;bottom:0;right:22px;width:2px;background:var(--margin);opacity:.55}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pill{background:none;border:2px solid var(--key-edge);border-radius:999px;padding:4px 14px;font-size:14px;color:var(--ink-soft)}
+
+/* grade picker */
+.grades{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.grade{aspect-ratio:1/0.8;max-width:100%;border-radius:18px;border:3px solid var(--key-edge);background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:transform .12s ease,border-color .12s ease}
+.grade:hover{transform:translateY(-3px);border-color:var(--c-mix)}
+.grade b{font-family:var(--font-display);font-weight:400;font-size:clamp(40px,12vw,60px);line-height:1;color:var(--c-mix)}
+.grade span{font-size:15px;color:var(--ink-soft)}
+
+/* subject tabs */
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab{border-radius:999px;border:2px solid var(--key-edge);background:var(--paper);padding:6px 16px;font-family:var(--font-display);font-size:17px}
+.tab.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.tab:disabled{opacity:.55;cursor:default}
+.tab small{font-family:var(--font-body);font-size:12px;margin-inline-start:6px}
+
+.topics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.topic{display:flex;align-items:center;gap:12px;text-align:right;background:var(--paper);border:2px solid var(--key-edge);border-radius:14px;padding:12px;transition:transform .12s ease,border-color .12s ease}
+.topic:hover{transform:translateY(-2px);border-color:var(--tc)}
+.topic .sym{flex:0 0 46px;height:46px;border-radius:12px;background:var(--tc);color:var(--on-tc);font-family:var(--font-display);font-size:20px;display:flex;align-items:center;justify-content:center;direction:ltr}
+.topic .txt{min-width:0}
+.topic .nm{font-family:var(--font-display);font-size:18px;line-height:1.2;display:block}
+.topic .ds{font-size:13px;color:var(--ink-soft);display:block;line-height:1.35}
+.topic .best{font-size:13px;color:var(--tc);display:block}
+.wide{grid-column:1/-1;border-width:3px}
+.topic.wide .nm{font-size:21px}
+
+/* custom test */
+.chk{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.chk label{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:10px;cursor:pointer}
+.chk label:hover{background:var(--bg)}
+.chk input{width:22px;height:22px;accent-color:var(--c-mix)}
+.share{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.share input{flex:1 1 220px;min-width:0;font:inherit;font-size:14px;direction:ltr;padding:8px 10px;border-radius:10px;border:2px solid var(--key-edge);background:var(--bg);color:var(--ink)}
+
+/* quiz */
+.bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.tag{font-family:var(--font-display);font-size:16px;color:var(--on-tc);background:var(--tc);padding:2px 12px;border-radius:999px;display:inline-block}
+.count{color:var(--ink-soft);font-size:15px}
+.timer{font-family:var(--font-display);font-size:16px;color:var(--ink-soft);direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums}
+.timer.stop{color:var(--tc)}
+.stars{font-size:15px;color:var(--ink-soft);display:flex;align-items:center;gap:6px}
+.stars b{color:var(--ink);font-size:18px}
+.stars .st{display:inline-block}
+.pop{animation:pop .45s ease}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.6) rotate(-12deg)}100%{transform:scale(1)}}
+.progress{height:8px;background:var(--grid);border-radius:99px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--tc);border-radius:99px;transition:width .3s ease}
+.qhead{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.say{background:var(--key);border:2px solid var(--key-edge);border-radius:999px;width:42px;height:42px;font-size:20px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.prompt{font-family:var(--font-display);font-size:clamp(19px,4.8vw,24px);line-height:1.45;margin:14px 0 10px;text-wrap:balance}
+.visual{display:flex;justify-content:center;margin:6px 0 14px;overflow-x:auto}
+.visual svg{max-width:100%;height:auto}
+.eq{font-family:var(--font-display);font-size:clamp(28px,7.5vw,40px);letter-spacing:.02em;text-align:center}
+.eq.small{font-size:clamp(22px,6vw,30px);direction:rtl}
+.stack{display:flex;flex-direction:column;align-items:center;gap:4px}
+.chartbox{display:flex;flex-direction:column;align-items:center;gap:4px}
+.chartbox b{font-family:var(--font-display);font-weight:400}
+.box{display:inline-block;min-width:1.4em;border:3px dashed var(--tc);border-radius:8px;text-align:center;color:var(--tc);padding:0 .15em;line-height:1.2}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1;font-family:var(--font-display);margin:0 .12em;direction:ltr}
+.frac span:last-child{border-top:2px solid currentColor;padding-top:2px;margin-top:2px;min-width:1em;text-align:center}
+.frac .box{font-size:.8em}
+.seq{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;direction:ltr}
+.seq span{min-width:62px;padding:6px 8px;text-align:center;border:2px solid var(--key-edge);border-radius:10px;font-family:var(--font-display);font-size:24px;background:var(--bg)}
+.seq span.miss{border:3px dashed var(--tc);color:var(--tc);background:transparent}
+.digits{display:flex;gap:8px;justify-content:center;direction:ltr}
+.digits span{width:48px;height:56px;display:flex;align-items:center;justify-content:center;border:2px solid var(--tc);border-radius:10px;font-family:var(--font-display);font-size:30px;background:var(--bg)}
+
+.vg{display:inline-flex;flex-direction:column;direction:ltr;font-family:var(--font-display);font-variant-numeric:tabular-nums;background:var(--paper);padding:6px;border-radius:8px}
+.vg .r{display:flex}
+.vg .cell{width:44px;height:48px;border:1px solid var(--grid);background:transparent;font-family:var(--font-display);font-size:30px;padding:0;display:flex;align-items:center;justify-content:center;color:var(--ink);border-radius:0;position:relative}
+.vg .cc{height:30px;font-size:17px;color:var(--tc);border-style:dashed;border-color:color-mix(in srgb,var(--tc) 35%,var(--grid))}
+.vg .op{color:var(--tc);cursor:default}
+.vg .nd.x::after{content:"";position:absolute;left:8px;right:8px;top:50%;border-top:3px solid var(--bad);transform:rotate(-30deg)}
+.vg .nd.x{color:var(--ink-soft)}
+.vg .rule{border-top:3px solid var(--ink);margin:3px 0}
+.vg .ac{background:color-mix(in srgb,var(--tc) 7%,transparent)}
+.vg .sel{outline:3px solid var(--tc);outline-offset:-3px;background:color-mix(in srgb,var(--hl) 55%,var(--paper))}
+.vg.shake .ac{animation:shake .4s ease;border-color:var(--bad)}
+.vg.solved .ac{color:var(--ok);border-color:var(--ok)}
+.vgnote{font-size:13px;color:var(--ink-soft);text-align:center;max-width:34ch;margin:6px auto 0}
+.helpbtn{font-family:var(--font-display);font-size:16px;background:var(--key);border:2px dashed var(--tc);color:var(--tc);border-radius:12px;padding:6px 14px;margin:0 auto 10px;display:block}
+.opsel{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.opsel button{font-family:var(--font-display);font-size:17px;border-radius:10px;border:2px solid var(--key-edge);background:var(--key);padding:4px 14px}
+.opsel button.on{background:var(--tc);border-color:var(--tc);color:var(--on-tc)}
+
+.answer{display:flex;flex-direction:column;align-items:center;gap:12px}
+.display{min-width:180px;height:62px;border:3px solid var(--key-edge);border-radius:12px;background:var(--bg);font-family:var(--font-display);font-size:36px;display:flex;align-items:center;justify-content:center;direction:ltr;padding:0 14px;font-variant-numeric:tabular-nums}
+.display.empty::after{content:"?";color:var(--ink-soft);opacity:.5}
+.display.shake{animation:shake .4s ease;border-color:var(--bad)}
+.display.solved{border-color:var(--ok);color:var(--ok)}
+@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.keypad{display:grid;grid-template-columns:repeat(3,72px);gap:8px;direction:ltr}
+.key{height:56px;border-radius:12px;background:var(--key);border:2px solid var(--key-edge);border-bottom-width:5px;font-family:var(--font-display);font-size:26px}
+.key:active{transform:translateY(2px);border-bottom-width:3px}
+.key.go{grid-column:1/-1;background:var(--tc);border-color:var(--tc);color:var(--on-tc);font-size:20px}
+.key.del{font-size:22px;color:var(--ink-soft)}
+.key.ghost{visibility:hidden}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;width:100%}
+.choice{min-height:56px;border-radius:12px;background:var(--key);border:2px solid var(--key-edge);border-bottom-width:5px;font-family:var(--font-display);font-size:21px;padding:6px 10px}
+.choice:hover:not(:disabled){border-color:var(--tc)}
+.choice.right{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.choice.wrong{background:var(--bad-bg);border-color:var(--bad);color:var(--bad);text-decoration:line-through}
+.choice:disabled{cursor:default}
+.feedback{border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.feedback.ok{background:var(--ok-bg);color:var(--ok)}
+.feedback.bad{background:var(--bad-bg);color:var(--bad)}
+.feedback.hint{background:color-mix(in srgb,var(--hl) 45%,var(--paper));color:var(--ink)}
+.feedback strong{font-family:var(--font-display);font-size:20px;font-weight:400}
+.feedback .ex{color:var(--ink)}
+.next{align-self:flex-start;font-family:var(--font-display);font-size:19px;background:var(--tc);color:var(--on-tc);border:0;border-radius:12px;padding:8px 20px}
+.hintbtn{background:none;border:0;color:var(--ink-soft);text-decoration:underline;font-size:15px;padding:4px}
+
+.big{font-family:var(--font-display);font-size:clamp(54px,14vw,80px);line-height:1;color:var(--tc)}
+.endstars{font-size:34px;letter-spacing:4px;color:#f4b400}
+.mist{display:flex;flex-direction:column;gap:8px;padding:0;margin:0;list-style:none}
+.mist li{border-inline-start:4px solid var(--margin);padding:6px 10px;background:var(--bg);border-radius:4px}
+.row-btns{display:flex;gap:10px;flex-wrap:wrap}
+.btn2{font-family:var(--font-display);font-size:18px;border-radius:12px;padding:8px 18px;border:2px solid var(--key-edge);background:var(--key)}
+.btn2.main{background:var(--tc,var(--c-mix));border-color:var(--tc,var(--c-mix));color:var(--on-tc)}
+.times{width:100%;border-collapse:collapse;font-size:15px}
+.times th{font-weight:400;color:var(--ink-soft);text-align:right;padding:4px 6px;border-bottom:2px solid var(--grid)}
+.times td{padding:6px;border-bottom:1px solid var(--grid);vertical-align:top}
+.times td.tt{font-family:var(--font-display);font-variant-numeric:tabular-nums;white-space:nowrap}
+.times tr.slow td.tt{color:var(--bad)}
+.times .q{color:var(--ink-soft);font-size:13px;display:block;max-width:34ch}
+.tsum{display:flex;gap:18px;flex-wrap:wrap}
+.tsum div{display:flex;flex-direction:column}
+.tsum b{font-family:var(--font-display);font-size:26px;font-weight:400;color:var(--tc);direction:ltr;unicode-bidi:isolate;text-align:right}
+.tsum span{font-size:13px;color:var(--ink-soft)}
+.note{font-size:13px;color:var(--ink-soft)}
+
+svg text{fill:var(--ink);font-family:var(--font-display);font-size:16px}
+svg text.sm{font-size:13px}
+svg .shape{fill:var(--shape-fill);stroke:var(--ink);stroke-width:3;stroke-linejoin:round}
+svg .ln{stroke:var(--ink);stroke-width:4;stroke-linecap:round;fill:none}
+svg .thin{stroke:var(--ink);stroke-width:1.5;fill:none}
+svg .gl{stroke:var(--grid);stroke-width:1.2}
+svg .mark{stroke:var(--c-geo);stroke-width:2.5;fill:none}
+svg .dot{fill:var(--ink)}
+svg .acc{fill:var(--tc);stroke:none}
+svg .accline{stroke:var(--tc);stroke-width:4;fill:color-mix(in srgb,var(--tc) 18%,transparent)}
+svg .face{fill:var(--paper);stroke:var(--ink);stroke-width:4}
+svg .ruler{fill:color-mix(in srgb,var(--hl) 55%,var(--paper));stroke:var(--ink);stroke-width:2}
+svg .guide{stroke:var(--ink-soft);stroke-width:1.5;stroke-dasharray:4 4}
+svg .tf{fill:var(--paper);stroke:var(--ink-soft);stroke-width:1.5}
+svg .cnt{fill:var(--tc)}
+svg .coinc{fill:var(--coin);stroke:var(--ink);stroke-width:2}
+
+.confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:20}
+.confetti i{position:absolute;top:-20px;width:10px;height:14px;border-radius:2px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}.confetti{display:none}}
+@media (max-width:440px){.page{padding:16px 28px 18px 12px}.page::before{right:16px}.keypad{grid-template-columns:repeat(3,64px)}.topics{grid-template-columns:1fr}.grades{gap:8px}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app" dir="rtl" lang="he"></div>
+<div class="confetti" id="confetti" aria-hidden="true"></div>
+
+<script src="math.js"></script>
+<script>
+document.documentElement.lang='he';document.documentElement.dir='rtl';
+const APP_URL=location.origin+location.pathname;  /* בשביל קישורי השיתוף */
+const NQ=10;
+const app=document.getElementById('app');
+const {GRADES,PROGRAM,SCHOOL_YEAR,fhtml,util}=window.MATH;
+const L=util.L;
+const LETTER={1:'א',2:'ב',3:'ג',4:'ד',5:'ה',6:'ו'};
+const COLOR=k=>`var(--c-${k})`;
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a, pick=a=>a[Math.floor(Math.random()*a.length)];
+const pad2=n=>String(n).padStart(2,'0'), mmss=s=>`${Math.floor(s/60)}:${pad2(s%60)}`;
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function store(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}}
+const fmtAns=a=>typeof a==='number'?util.fmt(a):a;
+
+let S=null,TICK=null,GRADE=store('msh-grade');
+
+/* ---------- הקראה קולית ---------- */
+const CAN_SPEAK='speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+function toSpeech(html){
+  return html.replace(/<span class="frac"><span>([^<]*)<\/span><span>([^<]*)<\/span><\/span>/g,' $1 חלקי $2 ').replace(/<span class="box">\?<\/span>/g,' כמה ')
+    .replace(/<[^>]+>/g,' ').replace(/&lt;/g,' קטן מ ').replace(/&gt;/g,' גדול מ ').replace(/×/g,' כפול ').replace(/ : /g,' לחלק ל ').replace(/−/g,' פחות ').replace(/\+/g,' ועוד ').replace(/=/g,' שווה ').replace(/\s+/g,' ').trim();
+}
+function speak(html){
+  if(!CAN_SPEAK)return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(toSpeech(html));u.lang='he-IL';u.rate=.9;const vs=speechSynthesis.getVoices().filter(v=>/^he|iw/i.test(v.lang));if(vs.length)u.voice=vs[0];speechSynthesis.speak(u)}catch(e){}
+}
+
+/* ---------- מסכים ---------- */
+function stopAll(){clearInterval(TICK);TICK=null;if(CAN_SPEAK)try{speechSynthesis.cancel()}catch(e){}}
+function home(){
+  stopAll();S=null;app.style.removeProperty('--tc');
+  app.innerHTML=`
+  <div class="head"><div><h1><span class="hl">משבצת</span></h1><p class="sub">תרגול לכיתות א'–ו', לפי תוכנית הלימודים</p></div></div>
+  <div class="page"><h2>באיזו כיתה אתם?</h2><p class="sub" style="margin-bottom:14px">בוחרים פעם אחת, ואפשר להחליף בכל רגע.</p>
+    <div class="grades">${[1,2,3,4,5,6].map(g=>`<button class="grade" data-g="${g}"><b>${LETTER[g]}'</b><span>כיתה ${LETTER[g]}'</span></button>`).join('')}</div>
+  </div>
+  <p class="note">פיילוט חינמי. כל השאלות נוצרות אוטומטית ונבדקות בבודק נפרד לפני שהן עולות.</p>`;
+  app.querySelectorAll('.grade').forEach(b=>b.onclick=()=>{GRADE=+b.dataset.g;store('msh-grade',GRADE);menu()});
+}
+function menu(){
+  stopAll();S=null;app.style.removeProperty('--tc');
+  const G=GRADES[GRADE],best=store('msh-best')||{};
+  const tile=(t,extra='')=>`<button class="topic ${extra}" data-t="${t.id}" style="--tc:${COLOR(t.c)}"><span class="sym">${t.sym}</span><span class="txt"><span class="nm">${t.name}</span><span class="ds">${t.desc}</span>${best[GRADE+':'+t.id]!=null?`<span class="best">שיא: ${L(best[GRADE+':'+t.id]+'/'+NQ)} ⭐</span>`:''}</span></button>`;
+  app.innerHTML=`
+  <div class="head"><div><h1>${G.name}</h1><p class="sub">${PROGRAM[GRADE]==='new'?'לפי תוכנית הלימודים החדשה':'לפי תוכנית הלימודים של 2006'} · ${SCHOOL_YEAR}</p></div><button class="pill" id="chg">החלפת כיתה</button></div>
+  <div class="tabs" role="tablist"><button class="tab on" role="tab" aria-selected="true">מתמטיקה</button><button class="tab" disabled>עברית<small>בקרוב</small></button><button class="tab" disabled>אנגלית<small>בקרוב</small></button></div>
+  <div class="topics">
+    ${tile({id:'__mix',name:'מבחן לדוגמה',sym:'★',c:'mix',desc:`${NQ} שאלות מכל הנושאים של ${G.name}`},'wide')}
+    ${G.topics.map(t=>tile(t)).join('')}
+    <button class="topic wide" id="custom" style="--tc:var(--c-mix)"><span class="sym">✓</span><span class="txt"><span class="nm">יש מבחן? בחרו נושאים</span><span class="ds">מסמנים את הנושאים מדף החזרה, ומקבלים מבחן מותאם וקישור לשיתוף</span></span></button>
+  </div>`;
+  document.getElementById('chg').onclick=home;
+  document.getElementById('custom').onclick=custom;
+  app.querySelectorAll('.topic[data-t]').forEach(b=>b.onclick=()=>start(b.dataset.t==='__mix'?G.topics.map(t=>t.id):[b.dataset.t],b.dataset.t==='__mix'?'__mix':b.dataset.t));
+}
+function custom(){
+  const G=GRADES[GRADE];
+  app.style.setProperty('--tc','var(--c-mix)');
+  app.innerHTML=`
+  <div class="bar"><button class="pill" id="back">→ חזרה</button></div>
+  <div class="page"><h2>מבחן מותאם · ${G.name}</h2><p class="sub">סמנו את הנושאים שמופיעים בדף החזרה של המורה.</p>
+    <div class="chk">${G.topics.map(t=>`<label><input type="checkbox" id="c-${t.id}" value="${t.id}"><span><b>${t.name}</b> <span class="note">· ${t.desc}</span></span></label>`).join('')}</div>
+    <div class="row-btns"><button class="btn2 main" id="go">התחילו לתרגל</button></div>
+    <div id="sharebox" hidden>
+      <p class="sub" style="margin-top:14px">רוצים לשלוח לקבוצת ההורים? הקישור פותח בדיוק את המבחן הזה:</p>
+      <div class="share"><input id="link" readonly><button class="btn2" id="copy">העתקה</button></div>
+      <p class="note" id="copied" role="status"></p>
+    </div>
+  </div>`;
+  document.getElementById('back').onclick=menu;
+  const sel=()=>[...app.querySelectorAll('.chk input:checked')].map(i=>i.value);
+  const upd=()=>{const ids=sel(),box=document.getElementById('sharebox');box.hidden=!ids.length||!APP_URL;if(ids.length&&APP_URL)document.getElementById('link').value=`${APP_URL}#t${GRADE}-${ids.join('.')}`};
+  app.querySelectorAll('.chk input').forEach(i=>i.onchange=upd);
+  document.getElementById('go').onclick=()=>{const ids=sel();if(!ids.length){document.getElementById('copied').textContent='';alertBox('בחרו לפחות נושא אחד.');return}start(ids,'__custom')};
+  document.getElementById('copy').onclick=()=>{const inp=document.getElementById('link'),msg=document.getElementById('copied');
+    const fallback=()=>{inp.select();msg.textContent='הקישור מסומן. העתיקו אותו (Ctrl+C או לחיצה ארוכה).'};
+    try{navigator.clipboard.writeText(inp.value).then(()=>msg.textContent='הקישור הועתק.',fallback)}catch(e){fallback()}};
+}
+function alertBox(t){const r=document.querySelector('.row-btns');let n=document.getElementById('warn');if(!n){n=document.createElement('p');n.id='warn';n.className='note';n.style.color='var(--bad)';r.after(n)}n.textContent=t}
+
+function start(ids,key){
+  stopAll();
+  S={key,ids,qs:window.MATH.makeRound(GRADE,ids,NQ),i:0,stars:0,tries:0,input:'',done:false,mistakes:[],log:[]};
+  question();
+}
+const topicOf=q=>GRADES[q.grade].topics.find(t=>t.id===q.topic);
+function question(){
+  const q=S.qs[S.i],T=topicOf(q);S.tries=0;S.input='';S.done=false;S.gridOn=false;S.g=null;
+  app.style.setProperty('--tc',COLOR(T.c));
+  const opt=o=>/^(\d+ )?\d+\/\d+$/.test(o)?fhtml(o):`<span class="ltr">${esc(o)}</span>`;
+  app.innerHTML=`
+  <div class="bar"><button class="pill" id="quit">→ לתפריט</button><span class="count">שאלה ${L(S.i+1)} מתוך ${L(NQ)}</span><span class="timer" id="timer">⏱ 0:00</span><span class="stars"><span class="st" id="st">⭐</span><b>${L(S.stars)}</b></span></div>
+  <div class="progress"><i style="width:${S.i/NQ*100}%"></i></div>
+  <div class="page">
+    <div class="qhead"><span class="tag">${T.name}</span>${CAN_SPEAK?'<button class="say" id="say" aria-label="הקראת השאלה">🔊</button>':''}</div>
+    <div class="prompt">${q.prompt}</div>
+    ${q.vis?`<div class="visual">${q.vis}</div>`:''}
+    ${q.vg?`<div class="visual" style="flex-direction:column;align-items:center">${gridHTML(...q.vg)}</div>`:''}
+    ${q.help?`<button class="helpbtn" id="helpb">✎ דף משבצות לחישוב במאונך</button><div id="helper"></div>`:''}
+    <div class="answer">${q.t==='num'?`
+      ${q.vg?'':'<div class="display empty" id="disp" aria-live="polite"></div>'}
+      <div class="keypad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="key" data-k="${n}">${n}</button>`).join('')}<button class="key del" data-k="del" aria-label="מחיקה">⌫</button><button class="key" data-k="0">0</button><button class="key${q.dec?'':' ghost'}" data-k="." aria-label="נקודה עשרונית"${q.dec?'':' tabindex="-1"'}>.</button><button class="key go" data-k="ok">בדיקה</button></div>`
+      :`<div class="choices">${q.opts.map((o,i)=>`<button class="choice" data-i="${i}">${opt(o)}</button>`).join('')}</div>`}
+    </div>
+    <div id="fb" style="margin-top:12px"></div>
+    <button class="hintbtn" id="hintb">צריכים רמז?</button>
+  </div>`;
+  S.t0=Date.now();clearInterval(TICK);TICK=setInterval(()=>{const t=document.getElementById('timer');if(t&&S&&S.t0)t.textContent='⏱ '+mmss(Math.floor((Date.now()-S.t0)/1000))},1000);
+  document.getElementById('quit').onclick=menu;
+  if(CAN_SPEAK)document.getElementById('say').onclick=()=>speak(q.prompt+' '+(q.vis&&q.vis.includes('class="eq')?q.vis:''));
+  document.getElementById('hintb').onclick=()=>{feedback('hint','רמז',q.hint);document.getElementById('hintb').hidden=true};
+  if(q.vg)bindGrid();
+  if(q.help)document.getElementById('helpb').onclick=openHelper;
+  if(q.t==='num')app.querySelectorAll('.key').forEach(b=>b.onclick=()=>key(b.dataset.k));
+  else app.querySelectorAll('.choice').forEach(b=>b.onclick=()=>choose(b));
+}
+
+/* ---------- דף משבצות לחיבור וחיסור במאונך ---------- */
+function gridHTML(a,b,op){
+  const A=String(a),B=String(b),w=Math.max(A.length,B.length)+1;
+  S.g={w,op,carry:Array(w).fill(''),ans:Array(w).fill(''),sel:{r:'a',i:w-1},lastA:w-1};
+  const numRow=(s,o,top)=>{let c='';const p=w-s.length;for(let i=0;i<w;i++){if(i<p)c+=i===0&&o?`<div class="cell op">${o}</div>`:'<div class="cell"></div>';else c+=top?`<button class="cell nd" data-r="t" aria-label="ספרה ${s[i-p]}">${s[i-p]}</button>`:`<div class="cell">${s[i-p]}</div>`}return `<div class="r">${c}</div>`};
+  let cr='',ar='';for(let i=0;i<w;i++){cr+=`<button class="cell cc" data-r="c" data-i="${i}" aria-label="משבצת עזר"></button>`;ar+=`<button class="cell ac" data-r="a" data-i="${i}" aria-label="ספרה בתשובה"></button>`}
+  return `<div class="vg" id="vg"><div class="r">${cr}</div>${numRow(A,'',true)}${numRow(B,op)}<div class="rule"></div><div class="r">${ar}</div></div>
+  <p class="vgnote">כותבים את התשובה מימין לשמאל. המשבצות הקטנות למעלה הן להעברה או לפריטה. נגיעה בספרה בשורה העליונה מוחקת אותה בקו.</p>`;
+}
+function bindGrid(){
+  document.querySelectorAll('#vg [data-r="a"],#vg [data-r="c"]').forEach(b=>b.onclick=()=>{if(S.done)return;S.g.sel={r:b.dataset.r,i:+b.dataset.i};if(b.dataset.r==='a')S.g.lastA=+b.dataset.i;paintGrid()});
+  document.querySelectorAll('#vg [data-r="t"]').forEach(b=>b.onclick=()=>{if(!S.done)b.classList.toggle('x')});
+  S.gridOn=true;paintGrid();
+}
+function gridValue(){const a=S.g.ans,f=a.findIndex(x=>x!=='');if(f<0)return'';const rest=a.slice(f);if(rest.includes(''))return null;return String(+rest.join(''))}
+function paintGrid(){
+  const g=S.g;
+  document.querySelectorAll('#vg [data-r="c"]').forEach(b=>{const i=+b.dataset.i;b.textContent=g.carry[i];b.classList.toggle('sel',!S.done&&g.sel.r==='c'&&g.sel.i===i)});
+  document.querySelectorAll('#vg [data-r="a"]').forEach(b=>{const i=+b.dataset.i;b.textContent=g.ans[i];b.classList.toggle('sel',!S.done&&g.sel.r==='a'&&g.sel.i===i)});
+  const v=gridValue();S.input=v||'';
+  const d=document.getElementById('disp');if(d){d.textContent=v||'';d.classList.toggle('empty',!v)}
+}
+function gridKey(k){
+  const g=S.g,s=g.sel;
+  if(k==='.')return;
+  if(k==='ok'){const v=gridValue();if(v===null){feedback('hint','חסרה ספרה','יש משבצת ריקה באמצע התשובה. מלאו אותה ואז לחצו "בדיקה".');return}if(v)check(+v===S.qs[S.i].ans);return}
+  if(k==='del'){if(s.r==='c'){g.carry[s.i]='';g.sel={r:'a',i:g.lastA}}else if(g.ans[s.i]!=='')g.ans[s.i]='';else if(s.i<g.w-1){s.i++;g.ans[s.i]='';g.lastA=s.i}paintGrid();return}
+  if(s.r==='c'){g.carry[s.i]=g.carry[s.i].length===1?g.carry[s.i]+k:k;g.sel={r:'a',i:g.lastA}}
+  else{g.ans[s.i]=k;if(s.i>0)s.i--;g.lastA=s.i}
+  paintGrid();
+}
+function openHelper(){
+  const q=S.qs[S.i],h=document.getElementById('helper');document.getElementById('helpb').hidden=true;
+  h.innerHTML=`<div class="opsel"><span>איזו פעולה צריך?</span><button data-op="+">חיבור +</button><button data-op="−">חיסור −</button></div><div id="hgrid" style="display:flex;flex-direction:column;align-items:center"></div>`;
+  h.querySelectorAll('[data-op]').forEach(b=>b.onclick=()=>{
+    h.querySelectorAll('[data-op]').forEach(x=>x.classList.toggle('on',x===b));
+    let [a,c]=q.help;if(b.dataset.op==='−'&&c>a)[a,c]=[c,a];
+    document.getElementById('hgrid').innerHTML=gridHTML(a,c,b.dataset.op);bindGrid();
+  });
+}
+
+/* ---------- תשובות ---------- */
+function key(k){
+  if(!S||S.done)return;
+  if(S.gridOn){gridKey(k);return}
+  const q=S.qs[S.i];
+  if(k==='del')S.input=S.input.slice(0,-1);
+  else if(k==='ok'){if(S.input&&S.input!=='.')check(Math.abs(parseFloat(S.input)-q.ans)<1e-9);return}
+  else if(k==='.'){if(!q.dec||S.input.includes('.'))return;S.input=(S.input||'0')+'.'}
+  else if(S.input.replace('.','').length<7)S.input=(S.input==='0'?'':S.input)+k;
+  const d=document.getElementById('disp');d.textContent=S.input;d.classList.toggle('empty',!S.input);d.classList.remove('shake');
+}
+function choose(btn){
+  if(S.done)return;const q=S.qs[S.i],ok=q.opts[+btn.dataset.i]===q.ans;
+  btn.classList.add(ok?'right':'wrong');btn.disabled=true;
+  if(ok||S.tries>=1)app.querySelectorAll('.choice').forEach(b=>{if(q.opts[+b.dataset.i]===q.ans)b.classList.add('right');b.disabled=true});
+  check(ok);
+}
+const PRAISE=['כל הכבוד!','מצוין!','בול!','אלופים!','נכון מאוד!','יפה מאוד!'];
+function stopTimer(res){clearInterval(TICK);TICK=null;if(!S||S.t0==null)return;const sec=Math.max(1,Math.round((Date.now()-S.t0)/1000)),q=S.qs[S.i];S.log[S.i]={sec,res,q};S.t0=null;const t=document.getElementById('timer');if(t){t.textContent='⏱ '+mmss(sec);t.classList.add('stop')}}
+function check(ok){
+  const q=S.qs[S.i];
+  if(ok){S.done=true;stopTimer(S.tries===0?'star':'second');
+    if(S.tries===0){S.stars++;const st=document.getElementById('st');st.classList.remove('pop');void st.offsetWidth;st.classList.add('pop');st.nextElementSibling.innerHTML=L(S.stars)}
+    const d=document.getElementById('disp');if(d)d.classList.add('solved');if(S.gridOn){document.getElementById('vg').classList.add('solved');paintGrid()}
+    feedback('ok',pick(PRAISE),S.tries===0?'':'הצלחתם בניסיון השני.',true);return}
+  S.tries++;
+  if(S.tries===1){const vg=document.getElementById('vg');if(S.gridOn&&vg){vg.classList.remove('shake');void vg.offsetWidth;vg.classList.add('shake')}
+    const d=document.getElementById('disp');if(d&&!S.gridOn){d.classList.remove('shake');void d.offsetWidth;d.classList.add('shake');S.input='';setTimeout(()=>{d.textContent='';d.classList.add('empty')},350)}
+    feedback('hint','כמעט! נסו שוב',q.hint);document.getElementById('hintb').hidden=true;return}
+  S.done=true;stopTimer('miss');S.mistakes.push(q);
+  if(q.vg){const A=String(q.ans);S.g.ans=S.g.ans.map((_,i)=>{const j=i-(S.g.w-A.length);return j>=0?A[j]:''});document.getElementById('vg').classList.add('solved');paintGrid()}
+  const d=document.getElementById('disp');if(d){d.textContent=q.ans;d.classList.remove('empty','shake');d.classList.add('solved')}
+  feedback('bad',`התשובה הנכונה: ${typeof q.ans==='string'&&/\//.test(q.ans)?fhtml(q.ans):L(esc(fmtAns(q.ans)))}`,`<span class="ex">${q.ex}</span>`,true);
+}
+function feedback(kind,title,body,next){
+  const fb=document.getElementById('fb');
+  fb.innerHTML=`<div class="feedback ${kind}" role="status"><strong>${title}</strong>${body?`<div>${body}</div>`:''}${next?`<button class="next" id="nx">${S.i<NQ-1?'לשאלה הבאה ←':'לסיכום ←'}</button>`:''}</div>`;
+  if(next){document.getElementById('hintb').hidden=true;const nx=document.getElementById('nx');nx.onclick=go;nx.focus({preventScroll:true});fb.scrollIntoView({block:'nearest',behavior:'smooth'})}
+}
+function go(){S.i++;if(S.i<NQ){question();window.scrollTo({top:0})}else end()}
+
+/* ---------- סיכום ---------- */
+function timesHTML(){
+  const lg=S.log.filter(Boolean);if(!lg.length)return'';
+  const tot=lg.reduce((a,x)=>a+x.sec,0),avg=Math.round(tot/lg.length),slowCut=Math.max(avg*1.6,avg+20);
+  const fast=lg.reduce((a,x)=>x.sec<a.sec?x:a),fi=S.log.indexOf(fast);
+  const icon={star:'⭐ נכון',second:'✓ בניסיון שני',miss:'✗ טעות'};
+  const clean=h=>h.replace(/<span class="frac"><span>([^<]*)<\/span><span>([^<]*)<\/span><\/span>/g,'$1/$2').replace(/<\/?[a-z][^>]*>/gi,'');
+  const eqText=q=>q.vg?`${q.vg[0]} ${q.vg[2]} ${q.vg[1]}`:(q.vis&&q.vis.startsWith('<div class="eq')?clean(q.vis):'');
+  return `<div><h2 style="margin-bottom:8px">זמנים</h2>
+  <div class="tsum"><div><b>${mmss(tot)}</b><span>זמן כולל</span></div><div><b>${mmss(avg)}</b><span>ממוצע לשאלה</span></div><div><b>${mmss(fast.sec)}</b><span>הכי מהירה (שאלה ${fi+1})</span></div></div>
+  <div style="overflow-x:auto;margin-top:10px"><table class="times"><thead><tr><th>#</th><th>נושא ושאלה</th><th>זמן</th><th>תוצאה</th></tr></thead><tbody>
+  ${S.log.map((x,i)=>x?`<tr class="${x.sec>=slowCut?'slow':''}"><td>${L(i+1)}</td><td>${topicOf(x.q).name}<span class="q">${clean(x.q.prompt)} ${eqText(x.q)?L(eqText(x.q)):''}</span></td><td class="tt">${L(mmss(x.sec))}</td><td>${icon[x.res]}</td></tr>`:'').join('')}
+  </tbody></table></div>
+  <p class="note" style="margin-top:6px">זמנים באדום: שאלות שלקחו הרבה יותר מהממוצע. כדאי לתרגל אותן.</p></div>`;
+}
+function end(){
+  stopAll();
+  const G=GRADES[GRADE],T=S.key==='__mix'?{name:'מבחן לדוגמה',c:'mix'}:S.key==='__custom'?{name:'מבחן מותאם',c:'mix'}:G.topics.find(t=>t.id===S.key);
+  app.style.setProperty('--tc',COLOR(T.c));
+  let isBest=false;if(S.key!=='__custom'){const best=store('msh-best')||{},k=GRADE+':'+S.key;isBest=best[k]==null||S.stars>best[k];if(isBest){best[k]=S.stars;store('msh-best',best)}}
+  const r=S.stars,msg=r>=9?'מעולה! אתם מוכנים למבחן 🎉':r>=7?'יפה מאוד! עוד קצת תרגול ואתם שם':r>=5?'התחלה טובה. כדאי לעבור על הטעויות':'לא נורא! בואו ננסה שוב, לאט ובזהירות',full=Math.round(r/2);
+  app.innerHTML=`
+  <div class="page" style="display:flex;flex-direction:column;gap:14px">
+    <span class="tag" style="align-self:flex-start">${G.name} · ${T.name}</span>
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><span class="big">${L(r+'/'+NQ)}</span><span>כוכבים בניסיון ראשון${isBest&&r>0?' — שיא חדש!':''}</span></div>
+    <div class="endstars" aria-hidden="true">${'★'.repeat(full)}<span style="opacity:.2">${'★'.repeat(5-full)}</span></div>
+    <p class="prompt" style="margin:0">${msg}</p>
+    ${timesHTML()}
+    ${S.mistakes.length?`<div><h2 style="margin-bottom:8px">כדאי לחזור על:</h2><ul class="mist">${S.mistakes.map(q=>`<li><span class="tag" style="--tc:${COLOR(topicOf(q).c)};font-size:13px">${topicOf(q).name}</span> ${q.prompt}<br><b>תשובה: ${typeof q.ans==='string'&&/\//.test(q.ans)?fhtml(q.ans):L(esc(fmtAns(q.ans)))}</b> · ${q.ex}</li>`).join('')}</ul></div>`:''}
+    <div class="row-btns"><button class="btn2 main" id="again">סיבוב נוסף</button><button class="btn2" id="back">לתפריט</button></div>
+  </div>`;
+  document.getElementById('again').onclick=()=>start(S.ids,S.key);
+  document.getElementById('back').onclick=menu;
+  if(r>=7)confetti();
+}
+function confetti(){
+  const c=document.getElementById('confetti');c.innerHTML='';const cols=['#1b9e77','#e07b1f','#7a4fd6','#2f74d0','#d23a7a','#f4b400'];
+  for(let i=0;i<40;i++){const e=document.createElement('i');e.style.left=rnd(0,100)+'%';e.style.background=pick(cols);e.style.animationDuration=(rnd(18,32)/10)+'s';e.style.animationDelay=(rnd(0,8)/10)+'s';c.appendChild(e)}
+  setTimeout(()=>c.innerHTML='',4500);
+}
+document.addEventListener('keydown',e=>{
+  if(!S)return;
+  if(S.done&&e.key==='Enter'){if(document.activeElement!==document.getElementById('nx')){e.preventDefault();go()}return}
+  const q=S.qs&&S.qs[S.i];if(!q||q.t!=='num'||S.done)return;
+  if(/^[0-9]$/.test(e.key))key(e.key);else if(e.key==='.')key('.');else if(e.key==='Backspace')key('del');else if(e.key==='Enter'){e.preventDefault();key('ok')}
+});
+
+/* ---------- כניסה: קישור מבחן משותף (#t4-num4.geo4) או המסך הרגיל ---------- */
+(function boot(){
+  const m=(location.hash||'').match(/^#t([1-6])-([a-z0-9.]+)$/);
+  if(m){const g=+m[1],ids=m[2].split('.').filter(id=>GRADES[g].topics.some(t=>t.id===id));if(ids.length){GRADE=g;store('msh-grade',g);start(ids,'__custom');return}}
+  if(GRADE&&GRADES[GRADE])menu();else home();
+})();
+</script>
+
+</body></html>
