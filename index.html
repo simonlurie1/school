@@ -244,23 +244,34 @@ const fmtAns=a=>typeof a==='number'?util.fmt(a):a;
 
 let S=null,TICK=null,GRADE=store('msh-grade');
 
-/* ---------- הקראה קולית ---------- */
+/* ---------- הקראה קולית ----------
+ * קודם קול איכותי מהשרת (api/tts.js, Google). אם אין אינטרנט, אין מפתח בשרת או שהשרת לא עונה — הקול של הדפדפן. */
 const CAN_SPEAK='speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+let CLOUD=location.protocol==='https:';           // באתר המקומי (http) אין שרת הקראה
+const AUDIO=new Audio();
 function toSpeech(html){
   return html.replace(/<span class="frac"><span>([^<]*)<\/span><span>([^<]*)<\/span><\/span>/g,' $1 חלקי $2 ').replace(/<span class="box">\?<\/span>/g,' כמה ')
-    .replace(/<[^>]+>/g,' ').replace(/&lt;/g,' קטן מ ').replace(/&gt;/g,' גדול מ ').replace(/×/g,' כפול ').replace(/ : /g,' לחלק ל ').replace(/−/g,' פחות ').replace(/\+/g,' ועוד ').replace(/=/g,' שווה ').replace(/\s+/g,' ').trim();
+    .replace(/<[^>]+>/g,' ').replace(/&nbsp;\?&nbsp;/g,' ').replace(/&nbsp;/g,' ').replace(/&lt;/g,' קטן מ ').replace(/&gt;/g,' גדול מ ').replace(/×/g,' כפול ').replace(/ : /g,' לחלק ל ').replace(/−/g,' פחות ').replace(/\+/g,' ועוד ').replace(/=/g,' שווה ').replace(/_+/g,' ').replace(/\s+/g,' ').trim();
 }
-function speak(html){
+function browserVoice(text,lang){
   if(!CAN_SPEAK)return;
-  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(toSpeech(html));u.lang='he-IL';u.rate=.9;const vs=speechSynthesis.getVoices().filter(v=>/^he|iw/i.test(v.lang));if(vs.length)u.voice=vs[0];speechSynthesis.speak(u)}catch(e){}
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=lang==='en'?'en-US':'he-IL';u.rate=lang==='en'?.8:.9;
+    const vs=speechSynthesis.getVoices().filter(v=>lang==='en'?/^en/i.test(v.lang):/^he|iw/i.test(v.lang));if(vs.length)u.voice=vs.find(v=>/en-US/i.test(v.lang))||vs[0];speechSynthesis.speak(u)}catch(e){}
 }
-function speakEn(text){
-  if(!CAN_SPEAK)return;
-  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=.8;const vs=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));if(vs.length)u.voice=vs.find(v=>/en-US/i.test(v.lang))||vs[0];speechSynthesis.speak(u)}catch(e){}
+function say(text,lang){
+  text=text.slice(0,400);
+  if(!CLOUD||!navigator.onLine)return browserVoice(text,lang);
+  let fell=false;const fallback=()=>{if(fell)return;fell=true;CLOUD=false;browserVoice(text,lang)};  // נכשל פעם אחת ← עד סוף הביקור קול הדפדפן
+  try{speechSynthesis.cancel()}catch(e){}
+  AUDIO.onerror=fallback;AUDIO.src=`/api/tts?lang=${lang}&text=${encodeURIComponent(text)}`;
+  AUDIO.play().catch(e=>{if(e.name!=='AbortError')fallback()});
 }
+const speak=html=>say(toSpeech(html),'he');
+const speakEn=text=>say(text,'en');
+const CAN_SAY=CAN_SPEAK||CLOUD;
 
 /* ---------- מסכים ---------- */
-function stopAll(){clearInterval(TICK);TICK=null;if(CAN_SPEAK)try{speechSynthesis.cancel()}catch(e){}}
+function stopAll(){clearInterval(TICK);TICK=null;AUDIO.pause();if(CAN_SPEAK)try{speechSynthesis.cancel()}catch(e){}}
 function home(){
   stopAll();S=null;app.style.removeProperty('--tc');
   app.innerHTML=`
@@ -329,7 +340,7 @@ function question(){
   <div class="bar"><button class="pill" id="quit">→ לתפריט</button><span class="count">שאלה ${L(S.i+1)} מתוך ${L(NQ)}</span><span class="timer" id="timer">⏱ 0:00</span><span class="stars"><span class="st" id="st">⭐</span><b>${L(S.stars)}</b></span></div>
   <div class="progress"><i style="width:${S.i/NQ*100}%"></i></div>
   <div class="page">
-    <div class="qhead"><span class="tag">${T.name}</span>${CAN_SPEAK?'<button class="say" id="say" aria-label="הקראת השאלה">🔊</button>':''}</div>
+    <div class="qhead"><span class="tag">${T.name}</span>${CAN_SAY?'<button class="say" id="say" aria-label="הקראת השאלה">🔊</button>':''}</div>
     <div class="prompt">${q.prompt}</div>
     ${q.vis?`<div class="visual">${q.vis}</div>`:''}
     ${q.vg?`<div class="visual" style="flex-direction:column;align-items:center">${gridHTML(...q.vg)}</div>`:''}
@@ -344,7 +355,7 @@ function question(){
   </div>`;
   S.t0=Date.now();clearInterval(TICK);TICK=setInterval(()=>{const t=document.getElementById('timer');if(t&&S&&S.t0)t.textContent='⏱ '+mmss(Math.floor((Date.now()-S.t0)/1000))},1000);
   document.getElementById('quit').onclick=()=>up(`${SUBJ}/${GRADE}`);
-  if(CAN_SPEAK)document.getElementById('say').onclick=()=>q.say?(SUBJ==='eng'?speakEn(q.say):speak(q.say)):speak(q.prompt+' '+(q.vis&&q.vis.includes('class="eq')?q.vis:''));
+  if(CAN_SAY)document.getElementById('say').onclick=()=>q.say?(SUBJ==='eng'?speakEn(q.say):speak(q.say)):speak(q.prompt+' '+(q.vis&&/class="(eq|hew)/.test(q.vis)?q.vis:''));
   document.getElementById('hintb').onclick=()=>{feedback('hint','רמז',q.hint);document.getElementById('hintb').hidden=true};
   if(q.vg)bindGrid();
   if(q.help)document.getElementById('helpb').onclick=openHelper;

@@ -3,7 +3,7 @@
  * גופנים של Google: מהמטמון, ומתעדכנים ברקע.
  * להעלות את VERSION כשמוסיפים או מוחקים קבצים מהרשימה.
  */
-const VERSION = 'v4';
+const VERSION = 'v5';
 const APP_CACHE = `msh-app-${VERSION}`;
 const FONT_CACHE = 'msh-fonts';
 const APP_FILES = [
@@ -46,6 +46,7 @@ self.addEventListener('fetch', e => {
   }
 
   if (url.origin !== location.origin) return;
+  if (url.pathname.startsWith('/api/')) return; // הקראה: Vercel שומר אותה במטמון שלו; כאן היא הייתה נשמרת בלי הטקסט ומתבלבלת
   // עותק אחד לכל קובץ, בלי ?… (למשל ?fbclid= מוואטסאפ/פייסבוק): אחרת נשמרים כמה עותקים, ובלי אינטרנט עלול לעלות עותק ישן של הדף
   const key = url.origin + url.pathname;
   e.respondWith(
