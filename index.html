@@ -114,9 +114,14 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--c-geo);outline-
 .mulres{font-family:var(--font-display);font-size:22px;text-align:center;min-height:32px;direction:ltr;color:var(--tc)}
 .multab{border-collapse:collapse;width:100%;direction:ltr;font-family:var(--font-display);font-variant-numeric:tabular-nums;table-layout:fixed}
 .multab td,.multab th{border:1px solid var(--grid);text-align:center;padding:0;height:clamp(26px,7.5vw,38px);font-size:clamp(12px,3.6vw,17px);cursor:pointer;font-weight:400}
-.multab th{background:var(--bg);color:var(--tc);font-size:clamp(13px,3.8vw,18px)}
-.multab .ln{background:color-mix(in srgb,var(--hl) 45%,var(--paper))}
-.multab .hit{background:var(--tc);color:var(--on-tc)}
+.multab td{background:color-mix(in srgb,var(--rc) 14%,var(--paper))}
+.multab td.sq{font-weight:700;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--rc) 55%,transparent)}  /* ריבועים: 1×1, 2×2… */
+.multab th{background:var(--rc,var(--ink));color:var(--on-tc);font-size:clamp(13px,3.8vw,18px)}
+.multab th.corner{background:var(--ink);color:var(--paper)}
+.multab td.ln{background:color-mix(in srgb,var(--hl) 80%,var(--paper))}
+.multab th.ln{box-shadow:inset 0 0 0 3px var(--hl)}
+.multab td.hit,.multab th.hit{background:var(--rc);color:var(--on-tc);font-weight:700;transform:scale(1.15);box-shadow:0 2px 8px rgba(0,0,0,.3);position:relative;z-index:1;border-radius:6px}
+.mulhead h2 span{display:inline-block}
 .say{background:var(--key);border:2px solid var(--key-edge);border-radius:999px;width:42px;height:42px;font-size:20px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
 .prompt{font-family:var(--font-display);font-size:clamp(19px,4.8vw,24px);line-height:1.45;margin:14px 0 10px;text-wrap:balance}
 .visual{display:flex;justify-content:center;margin:6px 0 14px;overflow-x:auto}
@@ -451,11 +456,11 @@ function openMul(){
   let d=document.getElementById('muldlg');
   if(!d){
     d=document.createElement('dialog');d.id='muldlg';d.className='muldlg';d.setAttribute('aria-label','לוח הכפל');
-    const n=[1,2,3,4,5,6,7,8,9,10];
-    d.innerHTML=`<div class="mulhead"><h2>לוח הכפל</h2><button class="mulx" aria-label="סגירה">✕</button></div>
+    const n=[1,2,3,4,5,6,7,8,9,10],RC=['margin','c-eq','c-word','c-ops','c-num','c-geo','c-div','c-mix','c-chart','c-meas'],rc=k=>`--rc:var(--${RC[k-1]})`;  // צבע לכל מספר
+    d.innerHTML=`<div class="mulhead"><h2>${[...'לוח הכפל'].map((ch,i)=>ch===' '?' ':`<span style="color:var(--${RC[i%10]})">${ch}</span>`).join('')}</h2><button class="mulx" aria-label="סגירה">✕</button></div>
       <div class="mulres" id="mulres" aria-live="polite"></div>
-      <table class="multab"><tr><th>×</th>${n.map(c=>`<th data-c="${c}">${c}</th>`).join('')}</tr>
-      ${n.map(r=>`<tr><th data-r="${r}">${r}</th>${n.map(c=>`<td data-r="${r}" data-c="${c}">${r*c}</td>`).join('')}</tr>`).join('')}</table>
+      <table class="multab"><tr><th class="corner">×</th>${n.map(c=>`<th data-c="${c}" style="${rc(c)}">${c}</th>`).join('')}</tr>
+      ${n.map(r=>`<tr style="${rc(r)}"><th data-r="${r}">${r}</th>${n.map(c=>`<td data-r="${r}" data-c="${c}"${r===c?' class="sq"':''}>${r*c}</td>`).join('')}</tr>`).join('')}</table>
       <p class="note" style="margin:8px 0 0;text-align:center">נגעו במספר כדי לראות איזה תרגיל הוא.</p>`;
     document.body.appendChild(d);
     d.querySelector('.mulx').onclick=()=>d.close();
