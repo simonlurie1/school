@@ -382,10 +382,10 @@ function tabQ(maxR, heads) {
     hint: `בוחרים משבצת ${mode === 'row' ? 'בשורה' : 'בעמודה'} של הסימן, ושואלים: איזה מספר כפול ${L(other)} שווה ${L(h * other)}?`, data: { k: 'mtab', ask: mode, h, cells } });
 }
 
-/* לוח כפל מלא 10×10 להשלמה: אילו משבצות ריקות. בכיתה ב' 40% ריקות, אחר כך 50% */
+/* לוח כפל מלא 10×10 להשלמה: אילו משבצות ריקות. בכיתה ב' 40 ריקות, מכיתה ג' 60 */
 function tableBoard(grade) {
   const all = []; for (let r = 1; r <= 10; r++) for (let c = 1; c <= 10; c++) all.push([r, c]);
-  const blanks = shuffle(all).slice(0, grade <= 2 ? 40 : 50).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const blanks = shuffle(all).slice(0, grade <= 2 ? 40 : 60).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   return { n: 10, blanks };
 }
 
@@ -469,7 +469,7 @@ const G3 = [
     () => { const a = rnd(2, 9), q = rnd(11, 30), n = a * q; return exprQ(`${n}/${a}`, 'חילוק (אפשר לפרק את המספר):', `פרקו את ${L(n)} לחלקים שקל לחלק ב־${L(a)}, למשל עשרות ועוד השאר.`); },
     () => remQ(9),
     () => { const k = rnd(1, 3); if (k === 1) { const a = rnd(2, 7), b = rnd(2, 10 - a), c = rnd(2, 9); return exprQ(`(${a}+${b})*${c}`, 'סדר פעולות: כמה זה?', 'קודם מה שבסוגריים.'); } if (k === 2) { const b = rnd(2, 9), c = rnd(2, 9), a = b * c + rnd(2, 30); return exprQ(`${a}-${b}*${c}`, 'סדר פעולות: כמה זה?', 'קודם כפל, אחר כך חיסור.'); } const b = rnd(2, 6), c = rnd(2, 6), d = rnd(5, 20); return exprQ(`${d}+${b}*${c}`, 'סדר פעולות: כמה זה?', 'קודם כפל, אחר כך חיבור.'); }] },
-  { id: 'mtab', name: 'השלמת לוח הכפל', sym: '▦×', c: 'num', desc: 'לוח כפל מלא 10×10, משלימים חצי מהמשבצות', gens: [() => tabQ(10, false), () => tabQ(10, true)] },
+  { id: 'mtab', name: 'השלמת לוח הכפל', sym: '▦×', c: 'num', desc: 'לוח כפל מלא 10×10, משלימים 60 משבצות', gens: [() => tabQ(10, false), () => tabQ(10, true)] },
   { id: 'word3', name: 'בעיות מילוליות', sym: '?', c: 'word', desc: 'בעיות של שלב אחד ושני שלבים', gens: [
     () => { const a = rnd(150, 2500), b = rnd(120, 1500); return wordQ(`בספרייה היו ${N(a)} ספרים. הגיעו עוד ${N(b)} ספרים. כמה ספרים יש עכשיו בספרייה?`, `${a}+${b}`, `${a} + ${b} = ${a + b}`, '"עוד" זה חיבור.', [], [a, b]); },
     () => { const a = rnd(600, 3000), b = rnd(150, a - 100); return wordQ(`באולם היו ${N(a)} כיסאות. הוציאו ${N(b)} כיסאות. כמה כיסאות נשארו?`, `${a}-${b}`, `${a} − ${b} = ${a - b}`, '"נשארו" זה חיסור.', [], [a, b]); },
@@ -503,7 +503,7 @@ const G4 = [
     () => { const a = rnd(2, 9), q = rnd(2, 9); return exprQ(`${a * q * 10}/${a}`, 'חילוק במספר עגול:', `פתרו קודם ${L(`${a * q} : ${a}`)} ואז הוסיפו 0.`); },
     G3[2].gens[6],
     () => { const a = rnd(2, 9), b = rnd(2, 9) * 10, left = a * b; if (Math.random() < .5) return cmpQ(`${a}*${b}`, String(Math.max(10, left + pick([-20, -10, 0, 10, 20])))); const c = rnd(2, 9), d = Math.round(left / c / 10) * 10 || 10; return cmpQ(`${a}*${b}`, `${c}*${d}`); }] },
-  { id: 'mtab', name: 'השלמת לוח הכפל', sym: '▦×', c: 'num', desc: 'לוח כפל מלא 10×10, משלימים חצי מהמשבצות', gens: [() => tabQ(10, true)] },
+  { id: 'mtab', name: 'השלמת לוח הכפל', sym: '▦×', c: 'num', desc: 'לוח כפל מלא 10×10, משלימים 60 משבצות', gens: [() => tabQ(10, true)] },
   { id: 'eq4', name: 'משוואות ואי־שוויונות', sym: '□=', c: 'eq', desc: 'מספר חסר, מספר מתאים', gens: [
     () => { const b = rnd(12, 88), x = rnd(15, 95); return missQ(`?+${b}`, `${x + b}`, null, `אפשר לחסר: ${L(`${x + b} − ${b}`)}`, x); },
     () => { const a = rnd(40, 150), x = rnd(12, a - 10); return missQ(`${a}-?`, `${a - x}`, null, `מה צריך להוריד מ־${L(a)} כדי לקבל ${L(a - x)}?`, x); },

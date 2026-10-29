@@ -381,11 +381,11 @@ for (const [subj, M] of ENGINES) {
 
 for (const p of wordListProblems()) note(`english word list: ${p}`, null);
 
-// לוח כפל מלא להשלמה: משבצות שונות, בתוך 10×10, בכמות הנכונה (40% בכיתה ב', 50% אחר כך)
+// לוח כפל מלא להשלמה: משבצות שונות, בתוך 10×10, בכמות הנכונה (40 בכיתה ב', 60 מכיתה ג')
 const MATH = ENGINES[0][1];
 for (const g of [2, 3, 4]) for (let i = 0; i < 200; i++) {
   const B = MATH.tableBoard(g), keys = new Set(B.blanks.map(([r, c]) => r + ',' + c));
-  if (B.n !== 10 || B.blanks.length !== (g <= 2 ? 40 : 50) || keys.size !== B.blanks.length || B.blanks.some(([r, c]) => r < 1 || r > 10 || c < 1 || c > 10))
+  if (B.n !== 10 || B.blanks.length !== (g <= 2 ? 40 : 60) || keys.size !== B.blanks.length || B.blanks.some(([r, c]) => r < 1 || r > 10 || c < 1 || c > 10))
     note(`math ${g}/mtab board: bad blanks`, null);
 }
 
