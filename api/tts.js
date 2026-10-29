@@ -13,7 +13,7 @@ const MAX_CHARS = 400;
 module.exports = async (req, res) => {
   const v = VOICES[req.query.lang], text = String(req.query.text || '').trim();
   if (!v || !text || text.length > MAX_CHARS) return res.status(400).end();
-  const key = process.env.GOOGLE_TTS_API_KEY;
+  const key = process.env.GOOGLE_TTS_API_KEY || process.env.VITE_GOOGLE_TTS_API_KEY; // השם השני: כמו בפרויקטים של Vite (כאן הוא לא נחשף לדפדפן)
   if (!key) return res.status(503).end();
   try {
     const r = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${key}`, {
