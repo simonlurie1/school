@@ -106,7 +106,26 @@ const RECOMPUTE = {
     return d.type.includes('גדול') ? Math.max(...pool) : Math.min(...pool);
   },
   round: d => Math.round(d.n / d.to) * d.to,
-  lines: d => ({ par: 'מקבילים', perp: 'מאונכים', cross: 'נחתכים (לא מאונכים)' })[d.kind]
+  lines: d => ({ par: 'מקבילים', perp: 'מאונכים', cross: 'נחתכים (לא מאונכים)' })[d.kind],
+  // מהציור עצמו: סופרים את העיגולים / מודדים את המלבן הצבוע (משבצת = 18 פיקסלים)
+  count: (d, q) => (q.vis.match(/class="cnt"/g) || []).length,
+  grid: (d, q) => {
+    const [, w, h] = q.vis.match(/class="accline"[^>]*width="(\d+)" height="(\d+)"/).map(Number), a = w / 18, b = h / 18;
+    return d.ask === 'area' ? a * b : 2 * (a + b);
+  },
+  solid: d => ({ 'קובייה': [6, 12, 8], 'תיבה': [6, 12, 8], 'מנסרה משולשת': [5, 9, 6], 'פירמידה מרובעת': [5, 8, 5], 'פירמידה משולשת': [4, 6, 4] })[d.s][d.pi],
+  h24: d => `${d.h - 12} אחר הצהריים`,
+  ineqOpt: (d, q) => { const ok = q.opts.filter(o => calc(d.e.replace('?', `(${o})`)) > d.gt); return ok.length === 1 ? ok[0] : undefined; },
+  quad: d => {
+    // מסווגים לפי הקודקודים: צלעות מקבילות, זווית ישרה, צלעות שוות
+    const v = d.P.map((p, i) => { const n = d.P[(i + 1) % 4]; return [n[0] - p[0], n[1] - p[1]]; });
+    const len = v.map(([x, y]) => Math.hypot(x, y)), par = (a, b) => close(a[0] * b[1] - a[1] * b[0], 0);
+    if (d.labels && d.labels.some((l, i) => !close(l, len[i]))) return `labels ${d.labels} but sides ${len.map(x => +x.toFixed(2))}`;
+    const pairs = par(v[0], v[2]) + par(v[1], v[3]), right = close(v[0][0] * v[1][0] + v[0][1] * v[1][1], 0), eq = len.every(x => close(x, len[0]));
+    if (pairs === 1) return 'טרפז';
+    if (pairs !== 2) return 'not a quadrilateral with parallel sides';
+    return right ? (eq ? 'ריבוע' : 'מלבן') : (eq ? 'מעוין' : 'מקבילית');
+  }
 };
 
 /* ---------- כללים לכל שאלה ---------- */
