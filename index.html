@@ -256,6 +256,14 @@ svg text.mtqt{font-weight:700;font-size:20px}  /* השלמת לוח הכפל */
 svg .coinc{fill:var(--coin);stroke:var(--ink);stroke-width:2}
 
 .confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:20}
+/* גרסה חדשה */
+#verbar{position:fixed;bottom:max(12px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:10px;
+  width:max-content;max-width:calc(100% - 32px);padding:10px 12px 10px 14px;border-radius:14px;background:var(--paper);color:var(--ink);
+  box-shadow:0 6px 24px rgba(0,0,0,.18),0 0 0 2px var(--c-mix);font-weight:700;animation:verin .3s ease-out}
+#verbar .btn2{font-size:16px;padding:6px 14px;white-space:nowrap}
+#verbar .verx{border:0;background:none;color:var(--ink-soft);font-size:18px;padding:4px 6px;cursor:pointer}
+@keyframes verin{from{transform:translate(-50%,20px);opacity:0}}
+@media (prefers-reduced-motion:reduce){#verbar{animation:none}}
 .confetti i{position:absolute;top:-20px;width:10px;height:14px;border-radius:2px;animation:fall linear forwards}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}.confetti{display:none}}
@@ -617,7 +625,7 @@ function boardEnd(){
   clearInterval(TICK);TICK=null;
   const all=Object.keys(S.cells).length,sec=Math.round((Date.now()-S.t0)/1000),r=Math.round(S.first/all*10),full=Math.round(r/2);
   const best=store('msh-best')||{},bk=bestKey('mtab'),isBest=best[bk]==null||r>best[bk];if(isBest){best[bk]=r;store('msh-best',best)}
-  S.board=false;S.t0=null;
+  S.board=false;S.t0=null;verShow();
   const fb=document.getElementById('fb');document.getElementById('hintb').hidden=true;document.querySelector('.fillpad').hidden=true;
   fb.innerHTML=`<div class="feedback ok" role="status"><strong>השלמתם את כל הלוח! 🎉</strong>
     <div>${L(S.first)} מתוך ${L(all)} נכון בניסיון הראשון, בזמן ${L(mmss(sec))}.${isBest&&r>0?' שיא חדש!':''}</div>
@@ -646,7 +654,7 @@ function timesHTML(){
   <p class="note" style="margin-top:6px">זמנים באדום: שאלות שלקחו הרבה יותר מהממוצע. כדאי לתרגל אותן.</p></div>`;
 }
 function end(){
-  stopAll();
+  stopAll();verShow();
   const G=GRADES[GRADE],T=S.key==='__mix'?{name:'מבחן לדוגמה',c:'mix'}:S.key==='__custom'?{name:'מבחן מותאם',c:'mix'}:G.topics.find(t=>t.id===S.key);
   app.style.setProperty('--tc',COLOR(T.c));
   let isBest=false;if(S.key!=='__custom'){const best=store('msh-best')||{},k=bestKey(S.key);isBest=best[k]==null||S.stars>best[k];if(isBest){best[k]=S.stars;store('msh-best',best)}}
@@ -696,6 +704,7 @@ function up(path){
 }
 function route(){
   stopAll();S=null;  // יוצאים ממבחן קודם (אחרת Enter במסך אחר ממשיך אותו)
+  verCheck();verShow();
   const h=decodeURIComponent(location.hash||'');
   const old=h.match(/^#([teh])([1-6])-([a-z0-9.-]+)$/);
   if(old)return nav(`${{t:'math',e:'eng',h:'heb'}[old[1]]}/${old[2]}/test/${old[3]}`,true);
@@ -715,6 +724,34 @@ function route(){
   if(ids.includes(rest))return SUBJ==='math'&&rest==='mtab'?board():start([rest],rest);
   nav(`${SUBJ}/${GRADE}`,true);
 }
+/* ---------- גרסה חדשה ----------
+ * כל טעינה של הדף מביאה את הגרסה העדכנית (sw.js: קודם מהרשת). אבל אפליקציה שחוזרת מהרקע בטלפון
+ * לא נטענת מחדש, ויכולה להישאר ישנה ימים. לכן כשחוזרים לדף בודקים (בבקשות HEAD קטנות) אם אחד
+ * מקבצי האתר השתנה בשרת, ומציעים לרענן. לא באמצע שאלון: ההצעה מחכה לתפריט או לסיכום. */
+const VER_FILES=['./','math.js','english.js','hebrew.js'];
+let VER_BASE=null,VER_AT=0,VER_NEW=false;
+async function verSig(){
+  const rs=await Promise.all(VER_FILES.map(f=>fetch(f,{method:'HEAD',cache:'no-store'})));
+  if(rs.some(r=>!r.ok))throw new Error('offline');
+  return rs.map(r=>r.headers.get('etag')||r.headers.get('last-modified')||'').join('|');
+}
+async function verCheck(){
+  if(VER_NEW||!navigator.onLine||Date.now()-VER_AT<5*60e3)return;  // לכל היותר פעם ב־5 דקות
+  VER_AT=Date.now();
+  try{const s=await verSig();if(VER_BASE==null)VER_BASE=s;else if(s!==VER_BASE){VER_NEW=true;verShow()}}catch(e){VER_AT=0}
+}
+const verBusy=()=>!!S&&(S.board||(S.qs&&S.i<NQ));  // באמצע שאלון או לוח הכפל
+function verShow(){
+  if(!VER_NEW||verBusy()||document.getElementById('verbar'))return;
+  const b=document.createElement('div');b.id='verbar';b.setAttribute('role','status');
+  b.innerHTML='<span>יש גרסה חדשה של האתר</span><button class="btn2 main" id="verok">לחצו לרענון</button><button class="verx" id="verx" aria-label="סגירה">✕</button>';
+  document.body.appendChild(b);
+  document.getElementById('verok').onclick=()=>location.reload();
+  document.getElementById('verx').onclick=()=>b.remove();
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')verCheck()});
+window.addEventListener('load',()=>setTimeout(verCheck,3000));
+
 window.addEventListener('popstate',route);
 route();
 
