@@ -6,7 +6,8 @@
  * הרצה:  node tests/verify.js [מספר שאלות לכל נושא, ברירת מחדל 2000]
  */
 'use strict';
-const ENGINES = [['math', require('../math.js')], ['english', require('../english.js')]];
+const ENGINES = [['math', require('../math.js')], ['english', require('../english.js')], ['hebrew', require('../hebrew.js')]];
+const HE = require('../hebrew.js');
 const EW = require('../english.js').WORDS;
 const PER_TOPIC = +process.argv[2] || 2000;
 const MAX_KEYPAD_DIGITS = 7;
@@ -101,6 +102,35 @@ const enNum = n => n === 100 ? 'one hundred' : n < 20 ? EN_ONES[n] : [EN_TENS[(n
 const EN_DAYS = 'Sunday Monday Tuesday Wednesday Thursday Friday Saturday'.split(' ');
 const EN_MONTHS = 'January February March April May June July August September October November December'.split(' ');
 
+
+/* ---------- עברית: כללים, כתובים כאן מחדש ---------- */
+const HE_ABC = 'אבגדהוזחטיכלמנסעפצקרשת';
+const HE_SOFIT = { ך: 'כ', ם: 'מ', ן: 'נ', ף: 'פ', ץ: 'צ' };
+const heNorm = w => w.split('').map(c => HE_SOFIT[c] || c).join('');
+const heCmp = (a, b) => { const x = heNorm(a), y = heNorm(b);
+  for (let i = 0; i < Math.min(x.length, y.length); i++) { const d = HE_ABC.indexOf(x[i]) - HE_ABC.indexOf(y[i]); if (d) return d; }
+  return x.length - y.length; };
+// זמן לפי צורת "אנחנו": עבר נגמר ב־נו, הווה ב־ים, עתיד מתחיל ב־נ
+const heTenseOf = w => w.endsWith('נו') ? 'עבר' : w.endsWith('ים') ? 'הווה' : w.startsWith('נ') ? 'עתיד' : '?';
+// מין ומספר של הנושא לפי המילים עצמן
+function heSubj(s) {
+  const first = s.split(' ')[0];
+  if (s.includes(' ו') || first.endsWith('ים')) return 'mp';
+  if (first.endsWith('ות')) return 'fp';
+  if (s === 'אמא' || first.endsWith('ה')) return 'f';
+  return 'm';
+}
+const HE_PREP = { ל: 'לי לך לו לה לנו לכם להם', של: 'שלי שלך שלו שלה שלנו שלכם שלהם', עם: 'איתי איתך איתו איתה איתנו איתכם איתם',
+  ב: 'בי בך בו בה בנו בכם בהם', את: 'אותי אותך אותו אותה אותנו אתכם אותם' };
+function heBinyan(w) {
+  if (w.startsWith('הת')) return 'התפעל';
+  if (w.length === 4 && w[1] === 'י') return 'פיעל';
+  if (w.length === 5 && w[0] === 'ה' && w[3] === 'י') return 'הפעיל';
+  if (w[0] === 'נ' && w.length === 4) return 'נפעל';
+  if (w.length === 3) return 'פעל (קל)';
+  return '?';
+}
+
 /* ---------- חישוב מחדש לפי סוג השאלה ----------
  * כל פונקציה מחזירה את התשובה הצפויה, או undefined אם אין לה מספיק מידע. */
 const RECOMPUTE = {
@@ -186,6 +216,28 @@ const RECOMPUTE = {
     if (pairs !== 2) return 'not a quadrilateral with parallel sides';
     return right ? (eq ? 'ריבוע' : 'מלבן') : (eq ? 'מעוין' : 'מקבילית');
   },
+  // עברית
+  'he-first': d => d.w[0],
+  'he-last': d => d.w[d.w.length - 1],
+  'he-final': d => ({ כ: 'ך', מ: 'ם', נ: 'ן', פ: 'ף', צ: 'ץ' })[d.c],
+  'he-order': d => HE_ABC[HE_ABC.indexOf(d.c) + (d.after ? 1 : -1)],
+  'he-dict': d => d.ws.slice().sort(heCmp)[0],
+  'he-plural': d => d.irr ? undefined : d.fem ? (d.w.endsWith('ייה') ? d.w.slice(0, -2) : d.w.slice(0, -1)) + 'ות' : heNorm(d.w) + 'ים',
+  'he-agree': (d, q) => { const v = HE.VERBS[d.vi], g = heSubj(q.vis.replace(/<[^>]+>/g, '').replace('אתמול ', '').split(/\s*&nbsp;/)[0].trim());
+    return d.isPast ? v[1][{ m: 0, f: 1, mp: 2, fp: 2 }[g]] : v[0][{ m: 0, f: 1, mp: 2, fp: 3 }[g]]; },
+  'he-tense': (d, q) => { const want = { אתמול: 'עבר', עכשיו: 'הווה', מחר: 'עתיד' }[q.vis.replace(/<[^>]+>/g, '').trim().split(' ')[0]];
+    const ok = q.opts.filter(o => heTenseOf(o) === want); return ok.length === 1 ? ok[0] : `${ok.length} options in ${want}`; },
+  'he-which': d => heTenseOf(d.w),
+  'he-person': d => d.w.endsWith('תי') ? 'אני' : d.w.endsWith('נו') ? 'אנחנו' : d.w.endsWith('תם') ? 'אתם' : d.w.endsWith('ו') ? 'הם' : d.w.endsWith('ה') ? 'היא' : 'הוא',
+  'he-opp': (d, q) => { const ok = q.opts.filter(o => HE.OPP.some(p => p.includes(d.w) && p.includes(o) && o !== d.w)); return ok.length === 1 ? ok[0] : `${ok.length} opposites`; },
+  'he-syn': (d, q) => { const ok = q.opts.filter(o => HE.SYN.some(p => p.includes(d.w) && p.includes(o) && o !== d.w)); return ok.length === 1 ? ok[0] : `${ok.length} synonyms`; },
+  'he-punct': d => { const f = d.s.split(/[ ,]/)[0];
+    return ['מה', 'איפה', 'מתי', 'למה', 'מי', 'האם', 'כמה', 'איך'].includes(f) ? '?' : ['איזה', 'איזו', 'הצילו', 'כל', 'זהירות', 'מזל'].includes(f) ? '!' : '.'; },
+  'he-root': d => { let i = 0; for (const c of heNorm(d.w)) if (c === d.r[i]) i++;
+    return i === 3 ? d.r.split('').join('־') : `root ${d.r} not in ${d.w}`; },
+  'he-smi': d => (d.a.endsWith('יים') ? d.a.slice(0, -2) : d.a.endsWith('ים') ? d.a.slice(0, -2) + 'י' : d.a.endsWith('ה') ? d.a.slice(0, -1) + 'ת' : d.a) + ' ' + d.b,
+  'he-prep': d => HE_PREP[d.p].split(' ')[d.i],
+  'he-bin': d => heBinyan(d.w),
   // אנגלית
   'en-case': d => d.toSmall ? d.U.toLowerCase() : d.U,
   'en-seq': d => String.fromCharCode(65 + d.from + d.miss),
