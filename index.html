@@ -498,7 +498,7 @@ function up(path){
   if(history.state&&history.state.prev==='#/'+path)history.back();else nav(path,true);
 }
 function route(){
-  stopAll();
+  stopAll();S=null;  // יוצאים ממבחן קודם (אחרת Enter במסך אחר ממשיך אותו)
   const h=decodeURIComponent(location.hash||'');
   const old=h.match(/^#([teh])([1-6])-([a-z0-9.-]+)$/);
   if(old)return nav(`${{t:'math',e:'eng',h:'heb'}[old[1]]}/${old[2]}/test/${old[3]}`,true);

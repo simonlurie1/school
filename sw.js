@@ -3,7 +3,7 @@
  * גופנים של Google: מהמטמון, ומתעדכנים ברקע.
  * להעלות את VERSION כשמוסיפים או מוחקים קבצים מהרשימה.
  */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const APP_CACHE = `msh-app-${VERSION}`;
 const FONT_CACHE = 'msh-fonts';
 const APP_FILES = [
@@ -46,10 +46,12 @@ self.addEventListener('fetch', e => {
   }
 
   if (url.origin !== location.origin) return;
+  // עותק אחד לכל קובץ, בלי ?… (למשל ?fbclid= מוואטסאפ/פייסבוק): אחרת נשמרים כמה עותקים, ובלי אינטרנט עלול לעלות עותק ישן של הדף
+  const key = url.origin + url.pathname;
   e.respondWith(
     fetch(req)
-      .then(r => { if (r.ok) { const copy = r.clone(); caches.open(APP_CACHE).then(c => c.put(req, copy)); } return r; })
-      .catch(async () => (await caches.match(req, { ignoreSearch: true })) ||
+      .then(r => { if (r.ok) { const copy = r.clone(); caches.open(APP_CACHE).then(c => c.put(key, copy)); } return r; })
+      .catch(async () => (await caches.match(key)) ||
         (req.mode === 'navigate' ? caches.match('index.html') : Response.error()))
   );
 });
