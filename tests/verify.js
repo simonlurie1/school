@@ -2,6 +2,7 @@
  * מייצר הרבה שאלות מכל נושא בכל כיתה, ובודק:
  *   1. כללים לכל שאלה: תשובה תקינה, התשובה בין האפשרויות, אין "undefined"/"NaN" בטקסט, התשובה נכנסת במקלדת.
  *   2. חישוב מחדש: לפי השדה data, מחשב את התשובה בדרך עצמאית ומשווה.
+ *   3. הקראה: הטקסט שהדף שולח לשרת ההקראה עובר את הבדיקה של api/tts.js.
  * מתמטיקה ואנגלית.
  * הרצה:  node tests/verify.js [מספר שאלות לכל נושא, ברירת מחדל 2000]
  */
@@ -320,6 +321,24 @@ function wordListProblems() {
   return p;
 }
 
+/* ---------- הקראה: כל טקסט שהדף שולח לשרת ההקראה עובר את הבדיקה של api/tts.js (אחרת השרת דוחה אותו) ---------- */
+const FS = require('fs'), ROOT = require('path').join(__dirname, '..');
+const TTS_SRC = FS.readFileSync(ROOT + '/api/tts.js', 'utf8'), PAGE = FS.readFileSync(ROOT + '/index.html', 'utf8');
+const TTS_TEXT = eval(TTS_SRC.match(/const ALLOWED_TEXT = (.*);/)[1]), TTS_MAX = +TTS_SRC.match(/const MAX_CHARS = (\d+)/)[1];
+const pageCode = (from, to) => { const i = PAGE.indexOf(from); return PAGE.slice(i, PAGE.indexOf(to, i)); };
+// speechOf בדף קורא את המקצוע הנוכחי מהמשתנה הגלובלי SUBJ
+const speechOf = new Function(pageCode('function toSpeech', '// קול הדפדפן') + pageCode('function htmlParts', 'const CAN_SAY') + 'return speechOf;')();
+function speechProblems(q) {
+  const p = [];
+  for (const part of speechOf(q)) {
+    const text = part.text.replace(/\s+/g, ' ').trim().slice(0, 400);   // כמו sayParts
+    if (!/[\p{L}\d]/u.test(text)) continue;
+    if (text.length > TTS_MAX) p.push(`speech part longer than ${TTS_MAX} chars`);
+    else if (!TTS_TEXT.test(text)) p.push(`speech has a character api/tts.js rejects: ${[...text].filter(c => !TTS_TEXT.test(c)).join(' ')}`);
+  }
+  return p;
+}
+
 /* ---------- הרצה ---------- */
 const fails = new Map();   // מפתח: כיתה/נושא/בעיה → { count, sample }
 const kinds = new Map();   // סוג → { total, recomputed }
@@ -329,6 +348,7 @@ function note(key, q) {
   f.count++; fails.set(key, f);
 }
 for (const [subj, M] of ENGINES) {
+  globalThis.SUBJ = { math: 'math', english: 'eng', hebrew: 'heb' }[subj];
   for (const g of Object.keys(M.GRADES)) {
     const topics = M.GRADES[g].topics;
     for (const t of topics) {
@@ -339,6 +359,7 @@ for (const [subj, M] of ENGINES) {
         const k = q.data ? q.data.k : '(no data)';
         const ks = kinds.get(k) || { total: 0, recomputed: 0 }; ks.total++;
         for (const p of generalProblems(q)) note(`${subj} ${g}/${t.id}/${k}: ${p.replace(/[\d.]+/g, '#')}`, q);
+        for (const p of speechProblems(q)) note(`${subj} ${g}/${t.id}/${k}: ${p}`, q);
         const r = recomputeProblem(q);
         if (q.data && RECOMPUTE[q.data.k]) ks.recomputed++;
         if (r) note(`${subj} ${g}/${t.id}/${k}: ${r.startsWith('checker') ? r.replace(/[\d.]+/g, '#') : 'wrong answer'}`, q);
