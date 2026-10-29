@@ -345,6 +345,49 @@ function fracChoice(val, extra) { // val=[n,d]; distractors distinct by value
   for (const c of shuffle(extra)) { if (opts.length >= 4) break; if (c[1] <= 0 || c[0] <= 0) continue; const x = c[0] / c[1]; if ([...seen].some(s => Math.abs(s - x) < 1e-9)) continue; seen.add(x); opts.push(fstr(c[0], c[1])); }
   return { ans, opts: shuffle(opts) };
 }
+/* חלון מלוח הכפל: rows×cols, ערכים שמוצגים ב־shown ("r,c"), משבצת ? ב־q ({r,c} או {r} / {c} לכותרת חסרה) */
+function tabSvg(rows, cols, shown, q) {
+  const c = 46, x0 = 4, y0 = 4; let s = '';
+  const cell = (x, y, cls, txt, tcls) => s += `<rect x="${x}" y="${y}" width="${c}" height="${c}" class="${cls}"/>` + (txt === '' ? '' : `<text x="${x + c / 2}" y="${y + c / 2 + 6}" text-anchor="middle"${tcls ? ` class="${tcls}"` : ''}>${txt}</text>`);
+  cell(x0, y0, 'mtc', '×', 'mtt');
+  cols.forEach((b, j) => q.c === b && q.r == null ? cell(x0 + (j + 1) * c, y0, 'mtq', '?', 'mtqt') : cell(x0 + (j + 1) * c, y0, 'mth', b, 'mtt'));
+  rows.forEach((a, i) => {
+    const y = y0 + (i + 1) * c;
+    q.r === a && q.c == null ? cell(x0, y, 'mtq', '?', 'mtqt') : cell(x0, y, 'mth', a, 'mtt');
+    cols.forEach((b, j) => { const x = x0 + (j + 1) * c; q.r === a && q.c === b ? cell(x, y, 'mtq', '?', 'mtqt') : cell(x, y, 'mtd', shown.has(a + ',' + b) ? a * b : ''); });
+  });
+  return svg(s, 2 * x0 + (cols.length + 1) * c, 2 * y0 + (rows.length + 1) * c);
+}
+/* השלמת לוח הכפל בשאלה אחת (במבחן לדוגמה ובמבחן מותאם; בתרגול הנושא עצמו יש לוח מלא, tableBoard).
+ * maxR: השורה הגדולה ביותר. heads: גם שאלות של כותרת חסרה */
+function tabQ(maxR, heads) {
+  const R = 3, C = rnd(4, 5), r0 = rnd(1, maxR - R + 1), c0 = rnd(1, 11 - C);
+  const rows = [...Array(R)].map((_, i) => r0 + i), cols = [...Array(C)].map((_, i) => c0 + i);
+  const mode = heads && Math.random() < .3 ? pick(['row', 'col']) : 'cell';
+  const shown = new Set(), cells = [];
+  const show = (a, b) => { shown.add(a + ',' + b); cells.push([a, b, a * b]); };
+  if (mode === 'cell') {
+    const r = pick(rows), cc = pick(cols);
+    rows.forEach(a => cols.forEach(b => { if ((a !== r || b !== cc) && Math.random() < (maxR <= 6 ? .6 : .45)) show(a, b); }));
+    return Q({ t: 'num', prompt: 'השלימו את לוח הכפל: איזה מספר צריך להיות במשבצת עם סימן השאלה?', vis: tabSvg(rows, cols, shown, { r, c: cc }), ans: r * cc,
+      ex: `${L(`${r} × ${cc} = ${r * cc}`)}: המספר בתחילת השורה כפול המספר בראש העמודה.`,
+      hint: `מסתכלים על המספר בתחילת השורה (${L(r)}) ועל המספר בראש העמודה (${L(cc)}), וכופלים אותם.`, data: { k: 'mtab', ask: 'cell', r, c: cc, cells } });
+  }
+  // כותרת חסרה: כל המשבצות בשורה (או בעמודה) של הסימן מלאות, כדי שאפשר יהיה לגלות אותה
+  const h = mode === 'row' ? pick(rows) : pick(cols);
+  rows.forEach(a => cols.forEach(b => { if ((mode === 'row' ? a === h : b === h) || Math.random() < .35) show(a, b); }));
+  const other = mode === 'row' ? cols[0] : rows[0];
+  return Q({ t: 'num', prompt: `השלימו את לוח הכפל: איזה מספר חסר ${mode === 'row' ? 'בתחילת השורה' : 'בראש העמודה'}?`, vis: tabSvg(rows, cols, shown, mode === 'row' ? { r: h } : { c: h }), ans: h,
+    ex: `${L(`${h * other} : ${other} = ${h}`)}, כי ${L(`${h} × ${other} = ${h * other}`)}.`,
+    hint: `בוחרים משבצת ${mode === 'row' ? 'בשורה' : 'בעמודה'} של הסימן, ושואלים: איזה מספר כפול ${L(other)} שווה ${L(h * other)}?`, data: { k: 'mtab', ask: mode, h, cells } });
+}
+
+/* לוח כפל מלא 10×10 להשלמה: אילו משבצות ריקות. בכיתה ב' 40% ריקות, אחר כך 50% */
+function tableBoard(grade) {
+  const all = []; for (let r = 1; r <= 10; r++) for (let c = 1; c <= 10; c++) all.push([r, c]);
+  const blanks = shuffle(all).slice(0, grade <= 2 ? 40 : 50).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  return { n: 10, blanks };
+}
 
 /* ===== כיתה א' (תוכנית חדשה) ===== */
 const G1 = [
@@ -392,6 +435,7 @@ const G2 = [
     () => { const a = pick([2, 4, 5, 10]), q = rnd(1, 10); return exprQ(`${a * q}/${a}`, 'כמה זה?', `איזה מספר כפול ${L(a)} שווה ${L(a * q)}?`); },
     () => { const a = pick([2, 4, 5, 10]), x = rnd(1, 10); return missQ(`${a}*?`, `${a * x}`, null, `כמה פעמים ${L(a)} נכנס ב־${L(a * x)}?`, x); },
     () => { const l = rnd(2, 5), p = pick([2, 4, 5]); return wordQ(`בתיבה יש ${L(l)} שכבות של קוביות. בכל שכבה יש ${L(p)} קוביות. כמה קוביות יש בתיבה?`, `${l}*${p}`, `${l} × ${p} = ${l * p}`, 'מספר השכבות כפול מספר הקוביות בכל שכבה.'); }] },
+  { id: 'mtab', name: 'השלמת לוח הכפל', sym: '▦×', c: 'num', desc: 'לוח כפל מלא 10×10, משלימים את המשבצות הריקות', gens: [() => tabQ(5, false)] },
   { id: 'word2', name: 'בעיות מילוליות וכסף', sym: '₪', c: 'word', desc: 'השוואה, קנייה, עודף, מטבעות', gens: [
     () => { const a = rnd(30, 90), b = rnd(10, a - 5), k1 = pick(KIDS), k2 = pick(KIDS.filter(x => x !== k1)); return wordQ(`ל${k1} יש ${L(a)} מדבקות ול${k2} יש ${L(b)}. בכמה מדבקות יותר יש ל${k1}?`, `${a}-${b}`, `${a} − ${b} = ${a - b}`, '"בכמה יותר" זה חיסור של הקטן מהגדול.', [], [a, b]); },
     () => { const a = rnd(10, 40), b = rnd(10, 30), c = rnd(5, 99 - a - b); return wordQ(`ביום ראשון נקטפו ${L(a)} תפוזים, ביום שני ${L(b)}, וביום שלישי ${L(c)}. כמה תפוזים נקטפו בסך הכול?`, `${a}+${b}+${c}`, `${a} + ${b} + ${c} = ${a + b + c}`, 'מחברים את שלושת הימים.'); },
@@ -425,6 +469,7 @@ const G3 = [
     () => { const a = rnd(2, 9), q = rnd(11, 30), n = a * q; return exprQ(`${n}/${a}`, 'חילוק (אפשר לפרק את המספר):', `פרקו את ${L(n)} לחלקים שקל לחלק ב־${L(a)}, למשל עשרות ועוד השאר.`); },
     () => remQ(9),
     () => { const k = rnd(1, 3); if (k === 1) { const a = rnd(2, 7), b = rnd(2, 10 - a), c = rnd(2, 9); return exprQ(`(${a}+${b})*${c}`, 'סדר פעולות: כמה זה?', 'קודם מה שבסוגריים.'); } if (k === 2) { const b = rnd(2, 9), c = rnd(2, 9), a = b * c + rnd(2, 30); return exprQ(`${a}-${b}*${c}`, 'סדר פעולות: כמה זה?', 'קודם כפל, אחר כך חיסור.'); } const b = rnd(2, 6), c = rnd(2, 6), d = rnd(5, 20); return exprQ(`${d}+${b}*${c}`, 'סדר פעולות: כמה זה?', 'קודם כפל, אחר כך חיבור.'); }] },
+  { id: 'mtab', name: 'השלמת לוח הכפל', sym: '▦×', c: 'num', desc: 'לוח כפל מלא 10×10, משלימים חצי מהמשבצות', gens: [() => tabQ(10, false), () => tabQ(10, true)] },
   { id: 'word3', name: 'בעיות מילוליות', sym: '?', c: 'word', desc: 'בעיות של שלב אחד ושני שלבים', gens: [
     () => { const a = rnd(150, 2500), b = rnd(120, 1500); return wordQ(`בספרייה היו ${N(a)} ספרים. הגיעו עוד ${N(b)} ספרים. כמה ספרים יש עכשיו בספרייה?`, `${a}+${b}`, `${a} + ${b} = ${a + b}`, '"עוד" זה חיבור.', [], [a, b]); },
     () => { const a = rnd(600, 3000), b = rnd(150, a - 100); return wordQ(`באולם היו ${N(a)} כיסאות. הוציאו ${N(b)} כיסאות. כמה כיסאות נשארו?`, `${a}-${b}`, `${a} − ${b} = ${a - b}`, '"נשארו" זה חיסור.', [], [a, b]); },
@@ -458,6 +503,7 @@ const G4 = [
     () => { const a = rnd(2, 9), q = rnd(2, 9); return exprQ(`${a * q * 10}/${a}`, 'חילוק במספר עגול:', `פתרו קודם ${L(`${a * q} : ${a}`)} ואז הוסיפו 0.`); },
     G3[2].gens[6],
     () => { const a = rnd(2, 9), b = rnd(2, 9) * 10, left = a * b; if (Math.random() < .5) return cmpQ(`${a}*${b}`, String(Math.max(10, left + pick([-20, -10, 0, 10, 20])))); const c = rnd(2, 9), d = Math.round(left / c / 10) * 10 || 10; return cmpQ(`${a}*${b}`, `${c}*${d}`); }] },
+  { id: 'mtab', name: 'השלמת לוח הכפל', sym: '▦×', c: 'num', desc: 'לוח כפל מלא 10×10, משלימים חצי מהמשבצות', gens: [() => tabQ(10, true)] },
   { id: 'eq4', name: 'משוואות ואי־שוויונות', sym: '□=', c: 'eq', desc: 'מספר חסר, מספר מתאים', gens: [
     () => { const b = rnd(12, 88), x = rnd(15, 95); return missQ(`?+${b}`, `${x + b}`, null, `אפשר לחסר: ${L(`${x + b} − ${b}`)}`, x); },
     () => { const a = rnd(40, 150), x = rnd(12, a - 10); return missQ(`${a}-?`, `${a - x}`, null, `מה צריך להוריד מ־${L(a)} כדי לקבל ${L(a - x)}?`, x); },
@@ -470,12 +516,12 @@ const G4 = [
     () => { const g = rnd(3, 8), k = rnd(3, 9), tot = g * k; return Math.random() < .5 ? wordQ(`${L(tot)} ילדים מתחלקים לקבוצות של ${L(g)}. כמה קבוצות יהיו?`, `${tot}/${g}`, `${tot} : ${g} = ${k}`, 'כמה פעמים הקבוצה נכנסת במספר הילדים? זה חילוק.') : wordQ(`${L(tot)} מדבקות חולקו שווה בשווה ל־${L(g)} ילדים. כמה מדבקות קיבל כל ילד?`, `${tot}/${g}`, `${tot} : ${g} = ${k}`, 'חלוקה שווה בשווה זה חילוק.'); },
     () => { const a = rnd(2, 9); let b; do { b = rnd(2, 9); } while (b === a); const ans = a < b ? '>' : '<'; return Q({ t: 'choice', prompt: 'איזה סימן מתאים?', vis: eq(`${fr(1, a)} ${BOX} ${fr(1, b)}`), opts: ['<', '=', '>'], ans, ex: `כשמחלקים ל־${Math.min(a, b)} חלקים, כל חלק גדול יותר מאשר כשמחלקים ל־${Math.max(a, b)} חלקים.`, hint: 'פיצה שמחולקת ל־2 או פיצה שמחולקת ל־8: איפה החתיכה גדולה יותר?', data: { k: 'fcmp', a: [1, a], b: [1, b] } }); },
     () => { const d = pick([4, 5, 6, 7, 8, 9, 10]), a = rnd(1, d - 2), b = rnd(1, d - 1 - a); const c = fracChoice([a + b, d], [[a + b, 2 * d], [a * b, d], [a + b + 1, d], [Math.abs(a - b) || 1, d], [a + b, d + d]]); return Q({ t: 'choice', prompt: 'כמה זה?', vis: eq(`${fr(a, d)} + ${fr(b, d)} = ${BOX}`), opts: c.opts, ans: c.ans, ex: `כשהמכנים שווים, מחברים רק את המונים: ${a} + ${b} = ${a + b}. התוצאה: ${c.ans}`, hint: 'המכנה (המספר למטה) נשאר אותו דבר.', data: { k: 'fop', op: '+', a: [a, d], b: [b, d] } }); }] },
-  { id: 'word4', name: 'בעיות מילוליות', sym: '?', c: 'word', desc: 'להבין, לבחור פעולה, לפתור', gens: [...G3[3].gens,
+  { id: 'word4', name: 'בעיות מילוליות', sym: '?', c: 'word', desc: 'להבין, לבחור פעולה, לפתור', gens: [...G3[4].gens,
     () => { const g = rnd(3, 6), k = rnd(4, 8), tot = g * k, a = rnd(Math.floor(tot / 3), Math.floor(tot * 2 / 3)); return wordQ(`בכיתה ${L(a)} בנים ו־${L(tot - a)} בנות. המורה חילקה את כולם לקבוצות של ${L(g)}. כמה קבוצות יש?`, `(${a}+${tot - a})/${g}`, `${a} + ${tot - a} = ${tot}, ואז ${tot} : ${g} = ${k}`, 'קודם כמה ילדים יש בכיתה (חיבור), ואחר כך חילוק לקבוצות.'); }] },
   { id: 'geo4', name: 'גאומטריה', sym: '△', c: 'geo', desc: 'מקבילים ומאונכים, זוויות, משולשים, מרובעים, היקף ושטח', gens: [
     linesQ, linesQ, () => angleQ(false), triAnglesQ, triSidesQ, quadQ,
     () => { const a = rnd(5, 15), b = rnd(2, a - 1); return Q({ t: 'num', prompt: 'מה ההיקף של המלבן? (בס״מ)', vis: rectSvg(a, b), ans: 2 * (a + b), ex: `${a} + ${b} + ${a} + ${b} = ${2 * (a + b)}`, hint: 'היקף = סכום כל הצלעות.', data: { k: 'rect', a, b, ask: 'perim' } }); },
-    G3[5].gens[1], G3[5].gens[2]] },
+    G3[6].gens[1], G3[6].gens[2]] },
   { id: 'meas4', name: 'אורך ושעון', sym: '⌚', c: 'meas', desc: 'סרגל, קריאת שעון, משך זמן', gens: [() => rulerQ(true), () => clockQ(5), () => durQ('min'), endTimeQ] },
   { id: 'chart4', name: 'תרשימים', sym: '▂▅▇', c: 'chart', desc: 'קריאת נתונים מתרשים עמודות', gens: [() => chartQ([1, 2, 2, 5])] }];
 
@@ -565,7 +611,7 @@ function makeRound(grade, topicIds, n = 10) {
   return out;
 }
 
-const API = { SCHOOL_YEAR, PROGRAM, GRADES, generate, makeRound, fstr, fhtml, util: { L, fr, E, tm, fmt, gcd } };
+const API = { SCHOOL_YEAR, PROGRAM, GRADES, generate, makeRound, tableBoard, fstr, fhtml, util: { L, fr, E, tm, fmt, gcd } };
 root.MATH = API;
 if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);

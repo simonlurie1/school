@@ -136,6 +136,13 @@ function heBinyan(w) {
  * כל פונקציה מחזירה את התשובה הצפויה, או undefined אם אין לה מספיק מידע. */
 const RECOMPUTE = {
   expr: d => calc(d.e),
+  // לוח הכפל: כל משבצת מוצגת נכונה; בכותרת חסרה, השורה/העמודה שלה מלאה ונותנת אותה מספר אחד
+  mtab: d => {
+    if (d.cells.some(([a, b, v]) => a * b !== v)) return 'wrong cell';
+    if (d.ask === 'cell') return d.r * d.c;
+    const line = d.cells.filter(([a, b]) => (d.ask === 'row' ? a : b) === d.h).map(([a, b, v]) => v / (d.ask === 'row' ? b : a));
+    return line.length >= 3 && line.every(x => x === line[0]) ? line[0] : 'header not recoverable';
+  },
   eqn: (d, q) => close(calc(d.l.replace('?', `(${q.ans})`)), calc(d.r)) ? q.ans : `no: ${d.l}=${d.r}`,
   poly: (d, q) => d.ask === 'name' ? POLY[d.n] : (typeof q.ans === 'number' ? d.n : undefined),
   clock: d => `${d.h}:${pad2(d.m)}`,
@@ -373,6 +380,14 @@ for (const [subj, M] of ENGINES) {
 }
 
 for (const p of wordListProblems()) note(`english word list: ${p}`, null);
+
+// לוח כפל מלא להשלמה: משבצות שונות, בתוך 10×10, בכמות הנכונה (40% בכיתה ב', 50% אחר כך)
+const MATH = ENGINES[0][1];
+for (const g of [2, 3, 4]) for (let i = 0; i < 200; i++) {
+  const B = MATH.tableBoard(g), keys = new Set(B.blanks.map(([r, c]) => r + ',' + c));
+  if (B.n !== 10 || B.blanks.length !== (g <= 2 ? 40 : 50) || keys.size !== B.blanks.length || B.blanks.some(([r, c]) => r < 1 || r > 10 || c < 1 || c > 10))
+    note(`math ${g}/mtab board: bad blanks`, null);
+}
 
 const unchecked = [...kinds].filter(([, v]) => v.recomputed === 0).map(([k]) => k);
 console.log(`Checked ${total} questions (${ENGINES.map(([n]) => n).join(' + ')}, grades 1–6).`);
