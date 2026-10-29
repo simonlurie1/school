@@ -11,7 +11,6 @@ const VOICES = {
 const MAX_CHARS = 400;
 
 module.exports = async (req, res) => {
-  if (req.query.diag === 'names') return res.json({ env: process.env.VERCEL_ENV, names: Object.keys(process.env).filter(k => /TTS|GOOGLE/i.test(k)) }); // זמני: שמות בלבד, בלי ערכים
   const v = VOICES[req.query.lang], text = String(req.query.text || '').trim();
   if (!v || !text || text.length > MAX_CHARS) return res.status(400).end();
   const key = process.env.GOOGLE_TTS_API_KEY || process.env.VITE_GOOGLE_TTS_API_KEY; // השם השני: כמו בפרויקטים של Vite (כאן הוא לא נחשף לדפדפן)
