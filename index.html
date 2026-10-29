@@ -104,7 +104,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--c-geo);outline-
 .progress i{display:block;height:100%;background:var(--tc);border-radius:99px;transition:width .3s ease}
 .qhead{display:flex;align-items:center;gap:10px;justify-content:space-between}
 .qbtns{display:flex;gap:8px;align-items:center}
-.mulbtn{font-family:var(--font-display);font-size:16px;background:var(--key);border:2px solid var(--key-edge);border-radius:999px;height:42px;padding:0 14px;color:var(--tc)}
+.mulico{width:15px;height:15px;fill:currentColor;opacity:.85}
+.mulbtn{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-display);font-size:16px;background:var(--key);border:2px solid var(--key-edge);border-radius:999px;height:42px;padding:0 14px;color:var(--tc)}
 /* לוח הכפל (חלון מעל השאלה) */
 .muldlg{border:0;border-radius:16px;padding:14px;background:var(--paper);color:var(--ink);max-width:min(96vw,520px);width:100%;box-shadow:0 20px 60px -20px rgba(10,20,60,.6)}
 .muldlg::backdrop{background:rgba(15,25,55,.45)}
@@ -266,7 +267,9 @@ let S=null,TICK=null,GRADE=store('msh-grade');
 /* ---------- הקראה קולית ----------
  * קודם קול איכותי מהשרת (api/tts.js, Google). אם אין אינטרנט, אין מפתח בשרת או שהשרת לא עונה — הקול של הדפדפן. */
 const CAN_SPEAK='speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
-let CLOUD=location.protocol==='https:';           // באתר המקומי (http) אין שרת הקראה
+// באתר המקומי אין שרת, אז משתמשים בשרת ההקראה של האתר החי (קובץ שמע לא צריך הרשאת CORS)
+const TTS_BASE=location.hostname==='localhost'?'https://school-phi-steel.vercel.app':'';
+let CLOUD=location.protocol==='https:'||location.hostname==='localhost';
 const AUDIO=new Audio();
 function toSpeech(html){
   return html.replace(/<span class="frac"><span>([^<]*)<\/span><span>([^<]*)<\/span><\/span>/g,' $1 חלקי $2 ').replace(/<span class="box">\?<\/span>/g,' כמה ')
@@ -275,7 +278,8 @@ function toSpeech(html){
 // קול הדפדפן: מחלקים לחתיכות קצרות (Chrome נוטה לעצור באמצע טקסט ארוך)
 function browserVoice(text,lang){
   if(!CAN_SPEAK)return;
-  const vs=speechSynthesis.getVoices().filter(v=>lang==='en'?/^en/i.test(v.lang):/^he|iw/i.test(v.lang)),voice=vs.find(v=>/en-US/i.test(v.lang))||vs[0];
+  const all=speechSynthesis.getVoices(),vs=all.filter(v=>lang==='en'?/^en/i.test(v.lang):/^he|iw/i.test(v.lang)),voice=vs.find(v=>/en-US/i.test(v.lang))||vs[0];
+  if(all.length&&!voice)return;  // אין קול בשפה הזאת (למשל אין עברית במחשב): עדיף שקט מאשר עברית בקול אנגלי
   for(const chunk of text.match(/[^.?!]{1,180}[.?!]?/g)||[]){
     try{const u=new SpeechSynthesisUtterance(chunk);u.lang=lang==='en'?'en-US':'he-IL';u.rate=lang==='en'?.8:.9;if(voice)u.voice=voice;speechSynthesis.speak(u)}catch(e){}
   }
@@ -289,7 +293,7 @@ function sayParts(parts){
   let i=0,fell=false;
   const fallback=()=>{if(fell||id!==SAY_ID)return;fell=true;CLOUD=false;parts.slice(Math.max(0,i-1)).forEach(p=>browserVoice(p.text,p.lang))}; // נכשל ← עד סוף הביקור קול הדפדפן
   const next=()=>{if(id!==SAY_ID||fell||i>=parts.length)return;const p=parts[i++];
-    AUDIO.onended=next;AUDIO.onerror=fallback;AUDIO.src=`/api/tts?lang=${p.lang}&text=${encodeURIComponent(p.text)}`;
+    AUDIO.onended=next;AUDIO.onerror=fallback;AUDIO.src=`${TTS_BASE}/api/tts?lang=${p.lang}&text=${encodeURIComponent(p.text)}`;
     AUDIO.play().catch(e=>{if(e.name!=='AbortError')fallback()})};
   next();
 }
@@ -385,7 +389,7 @@ function question(){
   <div class="bar"><button class="pill" id="quit">→ לתפריט</button><span class="count">שאלה ${L(S.i+1)} מתוך ${L(NQ)}</span><span class="timer" id="timer">⏱ 0:00</span><span class="stars"><span class="st" id="st">⭐</span><b>${L(S.stars)}</b></span></div>
   <div class="progress"><i style="width:${S.i/NQ*100}%"></i></div>
   <div class="page">
-    <div class="qhead"><span class="tag">${T.name}</span><span class="qbtns">${mulAllowed()?'<button class="mulbtn" id="mulb">✕ לוח הכפל</button>':''}${CAN_SAY?'<button class="say" id="say" aria-label="הקראת השאלה">🔊</button>':''}</span></div>
+    <div class="qhead"><span class="tag">${T.name}</span><span class="qbtns">${mulAllowed()?'<button class="mulbtn" id="mulb"><svg class="mulico" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 1h4v4H1zM6 1h4v4H6zM11 1h4v4h-4zM1 6h4v4H1zM6 6h4v4H6zM11 6h4v4h-4zM1 11h4v4H1zM6 11h4v4H6zM11 11h4v4h-4z"/></svg>לוח הכפל</button>':''}${CAN_SAY?'<button class="say" id="say" aria-label="הקראת השאלה">🔊</button>':''}</span></div>
     <div class="prompt">${q.prompt}</div>
     ${q.vis?`<div class="visual">${q.vis}</div>`:''}
     ${q.vg?`<div class="visual" style="flex-direction:column;align-items:center">${gridHTML(...q.vg)}</div>`:''}
