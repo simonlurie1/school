@@ -269,7 +269,7 @@ function home(){
     <div class="grades">${[1,2,3,4,5,6].map(g=>`<button class="grade" data-g="${g}"><b>${LETTER[g]}'</b><span>כיתה ${LETTER[g]}'</span></button>`).join('')}</div>
   </div>
   <p class="note">פיילוט חינמי. כל השאלות נוצרות אוטומטית ונבדקות בבודק נפרד לפני שהן עולות.</p>`;
-  app.querySelectorAll('.grade').forEach(b=>b.onclick=()=>{GRADE=+b.dataset.g;store('msh-grade',GRADE);menu()});
+  app.querySelectorAll('.grade').forEach(b=>b.onclick=()=>nav(`${SUBJ}/${b.dataset.g}`));
 }
 function menu(){
   stopAll();S=null;app.style.removeProperty('--tc');
@@ -285,10 +285,10 @@ function menu(){
     ${G.topics.map(t=>tile(t)).join('')}
     <button class="topic wide" id="custom" style="--tc:var(--c-mix)"><span class="sym">✓</span><span class="txt"><span class="nm">יש מבחן? בחרו נושאים</span><span class="ds">מסמנים את הנושאים מדף החזרה, ומקבלים מבחן מותאם וקישור לשיתוף</span></span></button>
   </div>`;
-  document.getElementById('chg').onclick=home;
-  app.querySelectorAll('.tab[data-s]').forEach(b=>b.onclick=()=>{if(b.dataset.s!==SUBJ){setSubject(b.dataset.s);menu()}});
-  document.getElementById('custom').onclick=custom;
-  app.querySelectorAll('.topic[data-t]').forEach(b=>b.onclick=()=>start(b.dataset.t==='__mix'?G.topics.map(t=>t.id):[b.dataset.t],b.dataset.t==='__mix'?'__mix':b.dataset.t));
+  document.getElementById('chg').onclick=()=>nav('');
+  app.querySelectorAll('.tab[data-s]').forEach(b=>b.onclick=()=>{if(b.dataset.s!==SUBJ)nav(`${b.dataset.s}/${GRADE}`,true)});
+  document.getElementById('custom').onclick=()=>nav(`${SUBJ}/${GRADE}/custom`);
+  app.querySelectorAll('.topic[data-t]').forEach(b=>b.onclick=()=>nav(`${SUBJ}/${GRADE}/${b.dataset.t==='__mix'?'mix':b.dataset.t}`));
 }
 function custom(){
   const G=GRADES[GRADE];
@@ -304,11 +304,11 @@ function custom(){
       <p class="note" id="copied" role="status"></p>
     </div>
   </div>`;
-  document.getElementById('back').onclick=menu;
+  document.getElementById('back').onclick=()=>up(`${SUBJ}/${GRADE}`);
   const sel=()=>[...app.querySelectorAll('.chk input:checked')].map(i=>i.value);
-  const upd=()=>{const ids=sel(),box=document.getElementById('sharebox');box.hidden=!ids.length||!APP_URL;if(ids.length&&APP_URL)document.getElementById('link').value=`${APP_URL}#${SUBJECTS[SUBJ].hash}${GRADE}-${ids.join('.')}`};
+  const upd=()=>{const ids=sel(),box=document.getElementById('sharebox');box.hidden=!ids.length||!APP_URL;if(ids.length&&APP_URL)document.getElementById('link').value=`${APP_URL}#/${SUBJ}/${GRADE}/test/${ids.join('.')}`};
   app.querySelectorAll('.chk input').forEach(i=>i.onchange=upd);
-  document.getElementById('go').onclick=()=>{const ids=sel();if(!ids.length){document.getElementById('copied').textContent='';alertBox('בחרו לפחות נושא אחד.');return}start(ids,'__custom')};
+  document.getElementById('go').onclick=()=>{const ids=sel();if(!ids.length){document.getElementById('copied').textContent='';alertBox('בחרו לפחות נושא אחד.');return}nav(`${SUBJ}/${GRADE}/test/${ids.join('.')}`)};
   document.getElementById('copy').onclick=()=>{const inp=document.getElementById('link'),msg=document.getElementById('copied');
     const fallback=()=>{inp.select();msg.textContent='הקישור מסומן. העתיקו אותו (Ctrl+C או לחיצה ארוכה).'};
     try{navigator.clipboard.writeText(inp.value).then(()=>msg.textContent='הקישור הועתק.',fallback)}catch(e){fallback()}};
@@ -343,7 +343,7 @@ function question(){
     <button class="hintbtn" id="hintb">צריכים רמז?</button>
   </div>`;
   S.t0=Date.now();clearInterval(TICK);TICK=setInterval(()=>{const t=document.getElementById('timer');if(t&&S&&S.t0)t.textContent='⏱ '+mmss(Math.floor((Date.now()-S.t0)/1000))},1000);
-  document.getElementById('quit').onclick=menu;
+  document.getElementById('quit').onclick=()=>up(`${SUBJ}/${GRADE}`);
   if(CAN_SPEAK)document.getElementById('say').onclick=()=>q.say?(SUBJ==='eng'?speakEn(q.say):speak(q.say)):speak(q.prompt+' '+(q.vis&&q.vis.includes('class="eq')?q.vis:''));
   document.getElementById('hintb').onclick=()=>{feedback('hint','רמז',q.hint);document.getElementById('hintb').hidden=true};
   if(q.vg)bindGrid();
@@ -466,7 +466,7 @@ function end(){
     <div class="row-btns"><button class="btn2 main" id="again">סיבוב נוסף</button><button class="btn2" id="back">לתפריט</button></div>
   </div>`;
   document.getElementById('again').onclick=()=>start(S.ids,S.key);
-  document.getElementById('back').onclick=menu;
+  document.getElementById('back').onclick=()=>up(`${SUBJ}/${GRADE}`);
   if(r>=7)confetti();
 }
 function confetti(){
@@ -481,12 +481,45 @@ document.addEventListener('keydown',e=>{
   if(/^[0-9]$/.test(e.key))key(e.key);else if(e.key==='.')key('.');else if(e.key==='Backspace')key('del');else if(e.key==='Enter'){e.preventDefault();key('ok')}
 });
 
-/* ---------- כניסה: קישור מבחן משותף (#t4-num4.geo4 במתמטיקה, #h4-h-root4 בעברית, #e4-e-spell באנגלית) או המסך הרגיל ---------- */
-(function boot(){
-  const m=(location.hash||'').match(/^#([teh])([1-6])-([a-z0-9.-]+)$/);
-  if(m){const s={t:'math',e:'eng',h:'heb'}[m[1]],g=+m[2],ids=m[3].split('.').filter(id=>SUBJECTS[s].eng.GRADES[g].topics.some(t=>t.id===id));if(ids.length){setSubject(s);GRADE=g;store('msh-grade',g);start(ids,'__custom');return}}
-  if(GRADE&&GRADES[GRADE])menu();else home();
-})();
+/* ---------- ניווט: לכל מסך כתובת משלו, כדי שכפתור "אחורה" ורענון הדף יעבדו ----------
+ * #/            בחירת כיתה
+ * #/heb/4       התפריט של עברית לכיתה ד'
+ * #/heb/4/h-root4   תרגול נושא (וגם mix = מבחן לדוגמה, custom = בחירת נושאים)
+ * #/heb/4/test/h-root4.h-person   מבחן מותאם (זה גם קישור השיתוף)
+ * קישורי שיתוף ישנים (#t4-num4.geo4, #h4-…, #e4-…) עדיין עובדים. */
+function nav(path,replace){
+  const h='#/'+path;
+  if(replace)history.replaceState(history.state,'',h);
+  else if(location.hash!==h)history.pushState({prev:location.hash},'',h);
+  route();
+}
+// כפתורי "חזרה" בתוך האפליקציה: אם הגענו מהמסך הזה, חוזרים אחורה בהיסטוריה (כדי ש"אחורה" של הדפדפן לא יחזיר לאותו מסך שוב)
+function up(path){
+  if(history.state&&history.state.prev==='#/'+path)history.back();else nav(path,true);
+}
+function route(){
+  stopAll();
+  const h=decodeURIComponent(location.hash||'');
+  const old=h.match(/^#([teh])([1-6])-([a-z0-9.-]+)$/);
+  if(old)return nav(`${{t:'math',e:'eng',h:'heb'}[old[1]]}/${old[2]}/test/${old[3]}`,true);
+  const m=h.match(/^#\/(math|heb|eng)\/([1-6])(?:\/(.+))?$/);
+  if(!m){
+    if(h!=='#/'&&GRADE&&GRADES[GRADE])return nav(`${SUBJ}/${GRADE}`,true);
+    if(h!=='#/')history.replaceState(history.state,'','#/');
+    return home();
+  }
+  setSubject(m[1]);GRADE=+m[2];
+  const rest=m[3],ids=GRADES[GRADE].topics.map(t=>t.id);
+  if(!rest){store('msh-grade',GRADE);return menu()}
+  if(rest==='custom')return custom();
+  if(rest==='mix')return start(ids,'__mix');
+  const t=rest.match(/^test\/([a-z0-9.-]+)$/),chosen=t?t[1].split('.').filter(id=>ids.includes(id)):[];
+  if(chosen.length)return start(chosen,'__custom');
+  if(ids.includes(rest))return start([rest],rest);
+  nav(`${SUBJ}/${GRADE}`,true);
+}
+window.addEventListener('popstate',route);
+route();
 
 /* ---------- אפליקציה: עבודה גם בלי אינטרנט ---------- */
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))
