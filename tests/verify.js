@@ -2,10 +2,12 @@
  * מייצר הרבה שאלות מכל נושא בכל כיתה, ובודק:
  *   1. כללים לכל שאלה: תשובה תקינה, התשובה בין האפשרויות, אין "undefined"/"NaN" בטקסט, התשובה נכנסת במקלדת.
  *   2. חישוב מחדש: לפי השדה data, מחשב את התשובה בדרך עצמאית ומשווה.
+ * מתמטיקה ואנגלית.
  * הרצה:  node tests/verify.js [מספר שאלות לכל נושא, ברירת מחדל 2000]
  */
 'use strict';
-const M = require('../math.js');
+const ENGINES = [['math', require('../math.js')], ['english', require('../english.js')]];
+const EW = require('../english.js').WORDS;
 const PER_TOPIC = +process.argv[2] || 2000;
 const MAX_KEYPAD_DIGITS = 7;
 
@@ -40,6 +42,64 @@ function maxAngle(P) {
 }
 const GEM = { א: 1, ב: 2, ג: 3, ד: 4, ה: 5, ו: 6, ז: 7, ח: 8, ט: 9, י: 10, כ: 20, ל: 30, מ: 40, נ: 50, ס: 60, ע: 70, פ: 80, צ: 90, ק: 100, ר: 200, ש: 300, ת: 400 };
 const POLY = { 3: 'משולש', 4: 'מרובע', 5: 'מחומש', 6: 'משושה', 8: 'מתומן' };
+
+
+/* ---------- אנגלית: כללי הדקדוק, כתובים כאן מחדש (לא מועתקים מ־english.js) ---------- */
+const VOWEL = c => 'aeiou'.includes(c);
+// מילה קצרה עם תנועה אחת שנגמרת בעיצור (חוץ מ־w, x, y): מכפילים את העיצור — big → bigger, stop → stopped
+const doubles = w => { const v = w.split('').filter(VOWEL).length, last = w[w.length - 1], before = w[w.length - 2];
+  return v === 1 && VOWEL(before) && !VOWEL(last) && !'wxy'.includes(last); };
+const consY = w => w.endsWith('y') && !VOWEL(w[w.length - 2]);
+const EN_PLURAL_IRR = { mouse: 'mice', sheep: 'sheep', tooth: 'teeth', foot: 'feet', man: 'men', woman: 'women', child: 'children' };
+function enPlural(w) {
+  if (w in EN_PLURAL_IRR) return EN_PLURAL_IRR[w];
+  if (consY(w)) return w.slice(0, -1) + 'ies';
+  if (['s', 'x', 'z'].some(e => w.endsWith(e)) || ['ch', 'sh'].some(e => w.endsWith(e)) || w === 'tomato') return w + 'es';
+  return w + 's';
+}
+// סוג הנושא לפי המילים עצמן: I / רבים (you, we, they, "X and Y", מילה ברבים) / יחיד
+function subjKind(s) {
+  const l = s.toLowerCase();
+  if (l === 'i') return 'I';
+  if (['you', 'we', 'they'].includes(l) || l.includes(' and ') || l.endsWith('s')) return 'pl';
+  return 's';
+}
+const enBe = s => ({ I: 'am', pl: 'are', s: 'is' })[subjKind(s)];
+function enThird(v) {
+  if (v === 'have') return 'has';
+  if (consY(v)) return v.slice(0, -1) + 'ies';
+  if (['s', 'x', 'z', 'ch', 'sh', 'o'].some(e => v.endsWith(e))) return v + 'es';
+  return v + 's';
+}
+function enIng(v) {
+  if (v.endsWith('ie')) return v.slice(0, -2) + 'ying';
+  if (v.endsWith('e') && !v.endsWith('ee')) return v.slice(0, -1) + 'ing';
+  return (doubles(v) ? v + v[v.length - 1] : v) + 'ing';
+}
+const EN_PAST_IRR = { go: 'went', eat: 'ate', see: 'saw', have: 'had', do: 'did', swim: 'swam', run: 'ran', drink: 'drank', sing: 'sang', sleep: 'slept',
+  write: 'wrote', ride: 'rode', buy: 'bought', come: 'came', take: 'took', make: 'made', give: 'gave', get: 'got', fly: 'flew', catch: 'caught',
+  find: 'found', sit: 'sat', draw: 'drew', break: 'broke', win: 'won', lose: 'lost', meet: 'met', tell: 'told' };
+function enPast(v) {
+  if (v in EN_PAST_IRR) return EN_PAST_IRR[v];
+  if (v.endsWith('e')) return v + 'd';
+  if (consY(v)) return v.slice(0, -1) + 'ied';
+  return (doubles(v) ? v + v[v.length - 1] : v) + 'ed';
+}
+const LONG_ADJ = ['beautiful', 'expensive', 'interesting'];
+function enComp(a, most) {
+  if (a === 'good') return most ? 'best' : 'better';
+  if (a === 'bad') return most ? 'worst' : 'worse';
+  if (LONG_ADJ.includes(a)) return (most ? 'most ' : 'more ') + a;
+  const end = most ? 'est' : 'er';
+  if (consY(a)) return a.slice(0, -1) + 'i' + end;
+  if (a.endsWith('e')) return a + end.slice(1);
+  return (doubles(a) ? a + a[a.length - 1] : a) + end;
+}
+const EN_ONES = 'zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen'.split(' ');
+const EN_TENS = { 2: 'twenty', 3: 'thirty', 4: 'forty', 5: 'fifty', 6: 'sixty', 7: 'seventy', 8: 'eighty', 9: 'ninety' };
+const enNum = n => n === 100 ? 'one hundred' : n < 20 ? EN_ONES[n] : [EN_TENS[(n - n % 10) / 10], n % 10 ? EN_ONES[n % 10] : ''].filter(Boolean).join('-');
+const EN_DAYS = 'Sunday Monday Tuesday Wednesday Thursday Friday Saturday'.split(' ');
+const EN_MONTHS = 'January February March April May June July August September October November December'.split(' ');
 
 /* ---------- חישוב מחדש לפי סוג השאלה ----------
  * כל פונקציה מחזירה את התשובה הצפויה, או undefined אם אין לה מספיק מידע. */
@@ -125,7 +185,29 @@ const RECOMPUTE = {
     if (pairs === 1) return 'טרפז';
     if (pairs !== 2) return 'not a quadrilateral with parallel sides';
     return right ? (eq ? 'ריבוע' : 'מלבן') : (eq ? 'מעוין' : 'מקבילית');
-  }
+  },
+  // אנגלית
+  'en-case': d => d.toSmall ? d.U.toLowerCase() : d.U,
+  'en-seq': d => String.fromCharCode(65 + d.from + d.miss),
+  'en-first': d => d.en[0].toUpperCase() + d.en[0],
+  'en-pic': (d, q) => { const clash = q.opts.find(o => o !== d.en && EW.some(w => w.en === o && w.e === d.e)); return clash ? `option ${clash} also fits picture` : d.en; },
+  'en-wpic': (d, q) => { const clash = q.opts.find(o => o !== d.e && EW.some(w => w.en === d.en && w.e === o)); return clash ? `option ${clash} also fits word` : d.e; },
+  'en-tr': (d, q) => {
+    const w = EW.find(x => x.en === d.en && x.cat === d.cat), want = d.dir === 'he' ? w.he : w.en;
+    const clash = q.opts.find(o => o !== want && (d.dir === 'he' ? EW.some(x => x.en === d.en && x.he === o) : EW.some(x => x.en === o && x.he === w.he)));
+    return clash ? `option ${clash} is also a translation` : want;
+  },
+  'en-spell': d => d.shown === d.en.slice(0, d.i) + '_' + d.en.slice(d.i + 1) ? d.en[d.i] : `shown ${d.shown} does not match ${d.en}`,
+  'en-num': d => d.dir === 'word' ? enNum(d.n) : String(d.n),
+  'en-order': d => { const L = d.isDay ? EN_DAYS : EN_MONTHS; return L[(d.i + (d.after ? 1 : L.length - 1)) % L.length]; },
+  'en-aan': d => VOWEL(d.en[0]) ? 'an' : 'a',
+  'en-plural': d => enPlural(d.en),
+  'en-be': d => enBe(d.s),
+  'en-pres': d => subjKind(d.s) === 's' ? enThird(d.v) : d.v,
+  'en-prog': d => `${enBe(d.s)} ${enIng(d.v)}`,
+  'en-past': d => enPast(d.v),
+  'en-comp': d => enComp(d.a, d.most),
+  'en-opp': (d, q) => { const opp = o => require('../english.js').OPP.some(p => p.includes(d.w) && p.includes(o) && o !== d.w); const ok = q.opts.filter(opp); return ok.length === 1 ? ok[0] : `${ok.length} options are opposites` }
 };
 
 /* ---------- כללים לכל שאלה ---------- */
@@ -138,6 +220,7 @@ function generalProblems(q) {
     else if (BAD_TEXT.test(q[f])) p.push(`${f} contains ${q[f].match(BAD_TEXT)[0]}`);
   }
   if (q.vis && BAD_TEXT.test(q.vis)) p.push('visual contains ' + q.vis.match(BAD_TEXT)[0]);
+  if (q.say !== undefined && (typeof q.say !== 'string' || !q.say.trim() || BAD_TEXT.test(q.say))) p.push('bad speech text');
   if (q.t === 'num') {
     if (typeof q.ans !== 'number' || !Number.isFinite(q.ans)) p.push(`num answer not a number: ${q.ans}`);
     else {
@@ -174,6 +257,17 @@ function recomputeProblem(q) {
   return same ? null : `answer ${JSON.stringify(q.ans)} but expected ${JSON.stringify(want)}`;
 }
 
+/* ---------- רשימת המילים באנגלית: אין שתי מילים עם אותה תמונה או אותו תרגום ---------- */
+function wordListProblems() {
+  const p = [], seen = new Map();
+  for (const w of EW) for (const [f, v] of [['en+cat', w.en + '/' + w.cat], ['picture', w.e], ['hebrew', w.he]]) {
+    if (!v) continue;
+    const key = f + ':' + v;
+    if (seen.has(key)) p.push(`same ${f} for ${seen.get(key)} and ${w.en}: ${v}`); else seen.set(key, w.en);
+  }
+  return p;
+}
+
 /* ---------- הרצה ---------- */
 const fails = new Map();   // מפתח: כיתה/נושא/בעיה → { count, sample }
 const kinds = new Map();   // סוג → { total, recomputed }
@@ -182,29 +276,33 @@ function note(key, q) {
   const f = fails.get(key) || { count: 0, sample: q };
   f.count++; fails.set(key, f);
 }
-for (const g of Object.keys(M.GRADES)) {
-  const topics = M.GRADES[g].topics;
-  for (const t of topics) {
-    for (let i = 0; i < PER_TOPIC; i++) {
-      let q;
-      try { q = M.generate(+g, t.id); } catch (e) { note(`${g}/${t.id}: generator threw ${e.message}`, null); continue; }
-      total++;
-      const k = q.data ? q.data.k : '(no data)';
-      const ks = kinds.get(k) || { total: 0, recomputed: 0 }; ks.total++;
-      for (const p of generalProblems(q)) note(`${g}/${t.id}/${k}: ${p.replace(/[\d.]+/g, '#')}`, q);
-      const r = recomputeProblem(q);
-      if (q.data && RECOMPUTE[q.data.k]) ks.recomputed++;
-      if (r) note(`${g}/${t.id}/${k}: ${r.startsWith('checker') ? r.replace(/[\d.]+/g, '#') : 'wrong answer'}`, q);
-      kinds.set(k, ks);
+for (const [subj, M] of ENGINES) {
+  for (const g of Object.keys(M.GRADES)) {
+    const topics = M.GRADES[g].topics;
+    for (const t of topics) {
+      for (let i = 0; i < PER_TOPIC; i++) {
+        let q;
+        try { q = M.generate(+g, t.id); } catch (e) { note(`${subj} ${g}/${t.id}: generator threw ${e.message}`, null); continue; }
+        total++;
+        const k = q.data ? q.data.k : '(no data)';
+        const ks = kinds.get(k) || { total: 0, recomputed: 0 }; ks.total++;
+        for (const p of generalProblems(q)) note(`${subj} ${g}/${t.id}/${k}: ${p.replace(/[\d.]+/g, '#')}`, q);
+        const r = recomputeProblem(q);
+        if (q.data && RECOMPUTE[q.data.k]) ks.recomputed++;
+        if (r) note(`${subj} ${g}/${t.id}/${k}: ${r.startsWith('checker') ? r.replace(/[\d.]+/g, '#') : 'wrong answer'}`, q);
+        kinds.set(k, ks);
+      }
     }
+    // סבב מעורב (מבחן לדוגמה) תמיד מחזיר 10 שאלות
+    const round = M.makeRound(+g, topics.map(t => t.id), 10);
+    if (round.length !== 10) note(`${subj} ${g}/mix: round has ${round.length} questions`, null);
   }
-  // סבב מעורב (מבחן לדוגמה) תמיד מחזיר 10 שאלות
-  const round = M.makeRound(+g, topics.map(t => t.id), 10);
-  if (round.length !== 10) note(`${g}/mix: round has ${round.length} questions`, null);
 }
 
+for (const p of wordListProblems()) note(`english word list: ${p}`, null);
+
 const unchecked = [...kinds].filter(([, v]) => v.recomputed === 0).map(([k]) => k);
-console.log(`Checked ${total} questions across ${Object.keys(M.GRADES).length} grades.`);
+console.log(`Checked ${total} questions (${ENGINES.map(([n]) => n).join(' + ')}, grades 1–6).`);
 console.log(`Answer recomputed independently for ${[...kinds.values()].reduce((a, v) => a + v.recomputed, 0)} of them.`);
 if (unchecked.length) console.log(`Kinds checked by general rules only: ${unchecked.join(', ')}`);
 if (!fails.size) { console.log('All good.'); process.exit(0); }

@@ -3,13 +3,14 @@
  * גופנים של Google: מהמטמון, ומתעדכנים ברקע.
  * להעלות את VERSION כשמוסיפים או מוחקים קבצים מהרשימה.
  */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const APP_CACHE = `msh-app-${VERSION}`;
 const FONT_CACHE = 'msh-fonts';
 const APP_FILES = [
   './',
   'index.html',
   'math.js',
+  'english.js',
   'manifest.webmanifest',
   'icons/icon.svg',
   'icons/icon-192.png',

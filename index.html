@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>משבצת</title>
-<meta name="description" content="משבצת: תרגול מתמטיקה לכיתות א'–ו' לפי תוכנית הלימודים">
+<meta name="description" content="משבצת: תרגול מתמטיקה ואנגלית לכיתות א'–ו' לפי תוכנית הלימודים">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -119,6 +119,10 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--c-geo);outline-
 .seq{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;direction:ltr}
 .seq span{min-width:62px;padding:6px 8px;text-align:center;border:2px solid var(--key-edge);border-radius:10px;font-family:var(--font-display);font-size:24px;background:var(--bg)}
 .seq span.miss{border:3px dashed var(--tc);color:var(--tc);background:transparent}
+.enw{font-family:var(--font-display);font-size:clamp(24px,6.5vw,34px);line-height:1.35;text-align:center;direction:ltr;unicode-bidi:isolate}
+.pic{font-size:clamp(64px,18vw,88px);line-height:1.15;text-align:center}
+.choice .emo{font-size:40px;line-height:1}
+.visual:has(.pic),.visual:has(.enw){overflow:visible}
 .digits{display:flex;gap:8px;justify-content:center;direction:ltr}
 .digits span{width:48px;height:56px;display:flex;align-items:center;justify-content:center;border:2px solid var(--tc);border-radius:10px;font-family:var(--font-display);font-size:30px;background:var(--bg)}
 
@@ -215,12 +219,18 @@ svg .coinc{fill:var(--coin);stroke:var(--ink);stroke-width:2}
 <div class="confetti" id="confetti" aria-hidden="true"></div>
 
 <script src="math.js"></script>
+<script src="english.js"></script>
 <script>
 document.documentElement.lang='he';document.documentElement.dir='rtl';
 const APP_URL=location.origin+location.pathname;  /* בשביל קישורי השיתוף */
 const NQ=10;
 const app=document.getElementById('app');
-const {GRADES,PROGRAM,SCHOOL_YEAR,fhtml,util}=window.MATH;
+const {PROGRAM,SCHOOL_YEAR,fhtml,util}=window.MATH;
+/* מקצועות: לכל אחד מנוע שאלות עם אותו מבנה (GRADES, makeRound) */
+const SUBJECTS={math:{name:'מתמטיקה',eng:window.MATH,hash:'t',best:''},eng:{name:'אנגלית',eng:window.ENGLISH,hash:'e',best:'e'}};
+let SUBJ=SUBJECTS[store('msh-subj')]?store('msh-subj'):'math',GRADES=SUBJECTS[SUBJ].eng.GRADES;
+function setSubject(s){SUBJ=s;GRADES=SUBJECTS[s].eng.GRADES;store('msh-subj',s)}
+const bestKey=k=>SUBJECTS[SUBJ].best+GRADE+':'+k;
 const L=util.L;
 const LETTER={1:'א',2:'ב',3:'ג',4:'ד',5:'ה',6:'ו'};
 const COLOR=k=>`var(--c-${k})`;
@@ -242,6 +252,10 @@ function speak(html){
   if(!CAN_SPEAK)return;
   try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(toSpeech(html));u.lang='he-IL';u.rate=.9;const vs=speechSynthesis.getVoices().filter(v=>/^he|iw/i.test(v.lang));if(vs.length)u.voice=vs[0];speechSynthesis.speak(u)}catch(e){}
 }
+function speakEn(text){
+  if(!CAN_SPEAK)return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=.8;const vs=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));if(vs.length)u.voice=vs.find(v=>/en-US/i.test(v.lang))||vs[0];speechSynthesis.speak(u)}catch(e){}
+}
 
 /* ---------- מסכים ---------- */
 function stopAll(){clearInterval(TICK);TICK=null;if(CAN_SPEAK)try{speechSynthesis.cancel()}catch(e){}}
@@ -258,16 +272,19 @@ function home(){
 function menu(){
   stopAll();S=null;app.style.removeProperty('--tc');
   const G=GRADES[GRADE],best=store('msh-best')||{};
-  const tile=(t,extra='')=>`<button class="topic ${extra}" data-t="${t.id}" style="--tc:${COLOR(t.c)}"><span class="sym">${t.sym}</span><span class="txt"><span class="nm">${t.name}</span><span class="ds">${t.desc}</span>${best[GRADE+':'+t.id]!=null?`<span class="best">שיא: ${L(best[GRADE+':'+t.id]+'/'+NQ)} ⭐</span>`:''}</span></button>`;
+  const tile=(t,extra='')=>`<button class="topic ${extra}" data-t="${t.id}" style="--tc:${COLOR(t.c)}"><span class="sym">${t.sym}</span><span class="txt"><span class="nm">${t.name}</span><span class="ds">${t.desc}</span>${best[bestKey(t.id)]!=null?`<span class="best">שיא: ${L(best[bestKey(t.id)]+'/'+NQ)} ⭐</span>`:''}</span></button>`;
+  const note=SUBJ==='eng'?window.ENGLISH.NOTE[GRADE]:(PROGRAM[GRADE]==='new'?'לפי תוכנית הלימודים החדשה':'לפי תוכנית הלימודים של 2006');
+  const tab=s=>`<button class="tab${s===SUBJ?' on':''}" role="tab" aria-selected="${s===SUBJ}" data-s="${s}">${SUBJECTS[s].name}</button>`;
   app.innerHTML=`
-  <div class="head"><div><h1>${G.name}</h1><p class="sub">${PROGRAM[GRADE]==='new'?'לפי תוכנית הלימודים החדשה':'לפי תוכנית הלימודים של 2006'} · ${SCHOOL_YEAR}</p></div><button class="pill" id="chg">החלפת כיתה</button></div>
-  <div class="tabs" role="tablist"><button class="tab on" role="tab" aria-selected="true">מתמטיקה</button><button class="tab" disabled>עברית<small>בקרוב</small></button><button class="tab" disabled>אנגלית<small>בקרוב</small></button></div>
+  <div class="head"><div><h1>${G.name}</h1><p class="sub">${note} · ${SCHOOL_YEAR}</p></div><button class="pill" id="chg">החלפת כיתה</button></div>
+  <div class="tabs" role="tablist">${tab('math')}${tab('eng')}<button class="tab" disabled>עברית<small>בקרוב</small></button></div>
   <div class="topics">
     ${tile({id:'__mix',name:'מבחן לדוגמה',sym:'★',c:'mix',desc:`${NQ} שאלות מכל הנושאים של ${G.name}`},'wide')}
     ${G.topics.map(t=>tile(t)).join('')}
     <button class="topic wide" id="custom" style="--tc:var(--c-mix)"><span class="sym">✓</span><span class="txt"><span class="nm">יש מבחן? בחרו נושאים</span><span class="ds">מסמנים את הנושאים מדף החזרה, ומקבלים מבחן מותאם וקישור לשיתוף</span></span></button>
   </div>`;
   document.getElementById('chg').onclick=home;
+  app.querySelectorAll('.tab[data-s]').forEach(b=>b.onclick=()=>{if(b.dataset.s!==SUBJ){setSubject(b.dataset.s);menu()}});
   document.getElementById('custom').onclick=custom;
   app.querySelectorAll('.topic[data-t]').forEach(b=>b.onclick=()=>start(b.dataset.t==='__mix'?G.topics.map(t=>t.id):[b.dataset.t],b.dataset.t==='__mix'?'__mix':b.dataset.t));
 }
@@ -287,7 +304,7 @@ function custom(){
   </div>`;
   document.getElementById('back').onclick=menu;
   const sel=()=>[...app.querySelectorAll('.chk input:checked')].map(i=>i.value);
-  const upd=()=>{const ids=sel(),box=document.getElementById('sharebox');box.hidden=!ids.length||!APP_URL;if(ids.length&&APP_URL)document.getElementById('link').value=`${APP_URL}#t${GRADE}-${ids.join('.')}`};
+  const upd=()=>{const ids=sel(),box=document.getElementById('sharebox');box.hidden=!ids.length||!APP_URL;if(ids.length&&APP_URL)document.getElementById('link').value=`${APP_URL}#${SUBJECTS[SUBJ].hash}${GRADE}-${ids.join('.')}`};
   app.querySelectorAll('.chk input').forEach(i=>i.onchange=upd);
   document.getElementById('go').onclick=()=>{const ids=sel();if(!ids.length){document.getElementById('copied').textContent='';alertBox('בחרו לפחות נושא אחד.');return}start(ids,'__custom')};
   document.getElementById('copy').onclick=()=>{const inp=document.getElementById('link'),msg=document.getElementById('copied');
@@ -298,14 +315,14 @@ function alertBox(t){const r=document.querySelector('.row-btns');let n=document.
 
 function start(ids,key){
   stopAll();
-  S={key,ids,qs:window.MATH.makeRound(GRADE,ids,NQ),i:0,stars:0,tries:0,input:'',done:false,mistakes:[],log:[]};
+  S={key,ids,qs:SUBJECTS[SUBJ].eng.makeRound(GRADE,ids,NQ),i:0,stars:0,tries:0,input:'',done:false,mistakes:[],log:[]};
   question();
 }
 const topicOf=q=>GRADES[q.grade].topics.find(t=>t.id===q.topic);
 function question(){
   const q=S.qs[S.i],T=topicOf(q);S.tries=0;S.input='';S.done=false;S.gridOn=false;S.g=null;
   app.style.setProperty('--tc',COLOR(T.c));
-  const opt=o=>/^(\d+ )?\d+\/\d+$/.test(o)?fhtml(o):`<span class="ltr">${esc(o)}</span>`;
+  const opt=o=>/^(\d+ )?\d+\/\d+$/.test(o)?fhtml(o):/\p{Extended_Pictographic}/u.test(o)?`<span class="emo">${o}</span>`:/^[A-Za-z]/.test(o)?`<span class="ltr" lang="en">${esc(o)}</span>`:`<span class="ltr">${esc(o)}</span>`;
   app.innerHTML=`
   <div class="bar"><button class="pill" id="quit">→ לתפריט</button><span class="count">שאלה ${L(S.i+1)} מתוך ${L(NQ)}</span><span class="timer" id="timer">⏱ 0:00</span><span class="stars"><span class="st" id="st">⭐</span><b>${L(S.stars)}</b></span></div>
   <div class="progress"><i style="width:${S.i/NQ*100}%"></i></div>
@@ -325,7 +342,7 @@ function question(){
   </div>`;
   S.t0=Date.now();clearInterval(TICK);TICK=setInterval(()=>{const t=document.getElementById('timer');if(t&&S&&S.t0)t.textContent='⏱ '+mmss(Math.floor((Date.now()-S.t0)/1000))},1000);
   document.getElementById('quit').onclick=menu;
-  if(CAN_SPEAK)document.getElementById('say').onclick=()=>speak(q.prompt+' '+(q.vis&&q.vis.includes('class="eq')?q.vis:''));
+  if(CAN_SPEAK)document.getElementById('say').onclick=()=>q.say?speakEn(q.say):speak(q.prompt+' '+(q.vis&&q.vis.includes('class="eq')?q.vis:''));
   document.getElementById('hintb').onclick=()=>{feedback('hint','רמז',q.hint);document.getElementById('hintb').hidden=true};
   if(q.vg)bindGrid();
   if(q.help)document.getElementById('helpb').onclick=openHelper;
@@ -422,7 +439,7 @@ function timesHTML(){
   const fast=lg.reduce((a,x)=>x.sec<a.sec?x:a),fi=S.log.indexOf(fast);
   const icon={star:'⭐ נכון',second:'✓ בניסיון שני',miss:'✗ טעות'};
   const clean=h=>h.replace(/<span class="frac"><span>([^<]*)<\/span><span>([^<]*)<\/span><\/span>/g,'$1/$2').replace(/<\/?[a-z][^>]*>/gi,'');
-  const eqText=q=>q.vg?`${q.vg[0]} ${q.vg[2]} ${q.vg[1]}`:(q.vis&&q.vis.startsWith('<div class="eq')?clean(q.vis):'');
+  const eqText=q=>q.vg?`${q.vg[0]} ${q.vg[2]} ${q.vg[1]}`:(q.vis&&/^<div class="(eq|enw|stack)/.test(q.vis)?clean(q.vis):'');
   return `<div><h2 style="margin-bottom:8px">זמנים</h2>
   <div class="tsum"><div><b>${mmss(tot)}</b><span>זמן כולל</span></div><div><b>${mmss(avg)}</b><span>ממוצע לשאלה</span></div><div><b>${mmss(fast.sec)}</b><span>הכי מהירה (שאלה ${fi+1})</span></div></div>
   <div style="overflow-x:auto;margin-top:10px"><table class="times"><thead><tr><th>#</th><th>נושא ושאלה</th><th>זמן</th><th>תוצאה</th></tr></thead><tbody>
@@ -434,7 +451,7 @@ function end(){
   stopAll();
   const G=GRADES[GRADE],T=S.key==='__mix'?{name:'מבחן לדוגמה',c:'mix'}:S.key==='__custom'?{name:'מבחן מותאם',c:'mix'}:G.topics.find(t=>t.id===S.key);
   app.style.setProperty('--tc',COLOR(T.c));
-  let isBest=false;if(S.key!=='__custom'){const best=store('msh-best')||{},k=GRADE+':'+S.key;isBest=best[k]==null||S.stars>best[k];if(isBest){best[k]=S.stars;store('msh-best',best)}}
+  let isBest=false;if(S.key!=='__custom'){const best=store('msh-best')||{},k=bestKey(S.key);isBest=best[k]==null||S.stars>best[k];if(isBest){best[k]=S.stars;store('msh-best',best)}}
   const r=S.stars,msg=r>=9?'מעולה! אתם מוכנים למבחן 🎉':r>=7?'יפה מאוד! עוד קצת תרגול ואתם שם':r>=5?'התחלה טובה. כדאי לעבור על הטעויות':'לא נורא! בואו ננסה שוב, לאט ובזהירות',full=Math.round(r/2);
   app.innerHTML=`
   <div class="page" style="display:flex;flex-direction:column;gap:14px">
@@ -462,10 +479,10 @@ document.addEventListener('keydown',e=>{
   if(/^[0-9]$/.test(e.key))key(e.key);else if(e.key==='.')key('.');else if(e.key==='Backspace')key('del');else if(e.key==='Enter'){e.preventDefault();key('ok')}
 });
 
-/* ---------- כניסה: קישור מבחן משותף (#t4-num4.geo4) או המסך הרגיל ---------- */
+/* ---------- כניסה: קישור מבחן משותף (#t4-num4.geo4 במתמטיקה, #e4-e-spell באנגלית) או המסך הרגיל ---------- */
 (function boot(){
-  const m=(location.hash||'').match(/^#t([1-6])-([a-z0-9.]+)$/);
-  if(m){const g=+m[1],ids=m[2].split('.').filter(id=>GRADES[g].topics.some(t=>t.id===id));if(ids.length){GRADE=g;store('msh-grade',g);start(ids,'__custom');return}}
+  const m=(location.hash||'').match(/^#([te])([1-6])-([a-z0-9.-]+)$/);
+  if(m){const s=m[1]==='e'?'eng':'math',g=+m[2],ids=m[3].split('.').filter(id=>SUBJECTS[s].eng.GRADES[g].topics.some(t=>t.id===id));if(ids.length){setSubject(s);GRADE=g;store('msh-grade',g);start(ids,'__custom');return}}
   if(GRADE&&GRADES[GRADE])menu();else home();
 })();
 
