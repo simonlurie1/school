@@ -103,6 +103,20 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--c-geo);outline-
 .progress{height:8px;background:var(--grid);border-radius:99px;overflow:hidden}
 .progress i{display:block;height:100%;background:var(--tc);border-radius:99px;transition:width .3s ease}
 .qhead{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.qbtns{display:flex;gap:8px;align-items:center}
+.mulbtn{font-family:var(--font-display);font-size:16px;background:var(--key);border:2px solid var(--key-edge);border-radius:999px;height:42px;padding:0 14px;color:var(--tc)}
+/* לוח הכפל (חלון מעל השאלה) */
+.muldlg{border:0;border-radius:16px;padding:14px;background:var(--paper);color:var(--ink);max-width:min(96vw,520px);width:100%;box-shadow:0 20px 60px -20px rgba(10,20,60,.6)}
+.muldlg::backdrop{background:rgba(15,25,55,.45)}
+.mulhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.mulhead h2{font-size:21px}
+.mulx{background:none;border:2px solid var(--key-edge);border-radius:999px;width:38px;height:38px;font-size:18px}
+.mulres{font-family:var(--font-display);font-size:22px;text-align:center;min-height:32px;direction:ltr;color:var(--tc)}
+.multab{border-collapse:collapse;width:100%;direction:ltr;font-family:var(--font-display);font-variant-numeric:tabular-nums;table-layout:fixed}
+.multab td,.multab th{border:1px solid var(--grid);text-align:center;padding:0;height:clamp(26px,7.5vw,38px);font-size:clamp(12px,3.6vw,17px);cursor:pointer;font-weight:400}
+.multab th{background:var(--bg);color:var(--tc);font-size:clamp(13px,3.8vw,18px)}
+.multab .ln{background:color-mix(in srgb,var(--hl) 45%,var(--paper))}
+.multab .hit{background:var(--tc);color:var(--on-tc)}
 .say{background:var(--key);border:2px solid var(--key-edge);border-radius:999px;width:42px;height:42px;font-size:20px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
 .prompt{font-family:var(--font-display);font-size:clamp(19px,4.8vw,24px);line-height:1.45;margin:14px 0 10px;text-wrap:balance}
 .visual{display:flex;justify-content:center;margin:6px 0 14px;overflow-x:auto}
@@ -297,7 +311,7 @@ function speechOf(q){
 const CAN_SAY=CAN_SPEAK||CLOUD;
 
 /* ---------- מסכים ---------- */
-function stopAll(){clearInterval(TICK);TICK=null;SAY_ID++;AUDIO.pause();if(CAN_SPEAK)try{speechSynthesis.cancel()}catch(e){}}
+function stopAll(){clearInterval(TICK);TICK=null;const md=document.getElementById('muldlg');if(md&&md.open)md.close();SAY_ID++;AUDIO.pause();if(CAN_SPEAK)try{speechSynthesis.cancel()}catch(e){}}
 function home(){
   stopAll();S=null;app.style.removeProperty('--tc');
   app.innerHTML=`
@@ -366,7 +380,7 @@ function question(){
   <div class="bar"><button class="pill" id="quit">→ לתפריט</button><span class="count">שאלה ${L(S.i+1)} מתוך ${L(NQ)}</span><span class="timer" id="timer">⏱ 0:00</span><span class="stars"><span class="st" id="st">⭐</span><b>${L(S.stars)}</b></span></div>
   <div class="progress"><i style="width:${S.i/NQ*100}%"></i></div>
   <div class="page">
-    <div class="qhead"><span class="tag">${T.name}</span>${CAN_SAY?'<button class="say" id="say" aria-label="הקראת השאלה">🔊</button>':''}</div>
+    <div class="qhead"><span class="tag">${T.name}</span><span class="qbtns">${mulAllowed()?'<button class="mulbtn" id="mulb">✕ לוח הכפל</button>':''}${CAN_SAY?'<button class="say" id="say" aria-label="הקראת השאלה">🔊</button>':''}</span></div>
     <div class="prompt">${q.prompt}</div>
     ${q.vis?`<div class="visual">${q.vis}</div>`:''}
     ${q.vg?`<div class="visual" style="flex-direction:column;align-items:center">${gridHTML(...q.vg)}</div>`:''}
@@ -381,6 +395,7 @@ function question(){
   </div>`;
   S.t0=Date.now();clearInterval(TICK);TICK=setInterval(()=>{const t=document.getElementById('timer');if(t&&S&&S.t0)t.textContent='⏱ '+mmss(Math.floor((Date.now()-S.t0)/1000))},1000);
   document.getElementById('quit').onclick=()=>up(`${SUBJ}/${GRADE}`);
+  if(mulAllowed())document.getElementById('mulb').onclick=openMul;
   if(CAN_SAY)document.getElementById('say').onclick=()=>sayParts(speechOf(q));
   document.getElementById('hintb').onclick=()=>{feedback('hint','רמז',q.hint);document.getElementById('hintb').hidden=true};
   if(q.vg)bindGrid();
@@ -428,6 +443,32 @@ function openHelper(){
     let [a,c]=q.help;if(b.dataset.op==='−'&&c>a)[a,c]=[c,a];
     document.getElementById('hgrid').innerHTML=gridHTML(a,c,b.dataset.op);bindGrid();
   });
+}
+
+/* ---------- לוח הכפל: בתרגול חשבון מכיתה ב' (לא במבחן לדוגמה ולא במבחן מותאם, שם הוא היה נותן את התשובה) ---------- */
+const mulAllowed=()=>SUBJ==='math'&&GRADE>=2&&S&&S.key!=='__mix'&&S.key!=='__custom';
+function openMul(){
+  let d=document.getElementById('muldlg');
+  if(!d){
+    d=document.createElement('dialog');d.id='muldlg';d.className='muldlg';d.setAttribute('aria-label','לוח הכפל');
+    const n=[1,2,3,4,5,6,7,8,9,10];
+    d.innerHTML=`<div class="mulhead"><h2>לוח הכפל</h2><button class="mulx" aria-label="סגירה">✕</button></div>
+      <div class="mulres" id="mulres" aria-live="polite"></div>
+      <table class="multab"><tr><th>×</th>${n.map(c=>`<th data-c="${c}">${c}</th>`).join('')}</tr>
+      ${n.map(r=>`<tr><th data-r="${r}">${r}</th>${n.map(c=>`<td data-r="${r}" data-c="${c}">${r*c}</td>`).join('')}</tr>`).join('')}</table>
+      <p class="note" style="margin:8px 0 0;text-align:center">נגעו במספר כדי לראות איזה תרגיל הוא.</p>`;
+    document.body.appendChild(d);
+    d.querySelector('.mulx').onclick=()=>d.close();
+    d.addEventListener('click',e=>{if(e.target===d)d.close()});  // לחיצה מחוץ ללוח
+    d.querySelector('table').addEventListener('click',e=>{
+      const t=e.target.closest('td,th');if(!t)return;const r=+t.dataset.r||0,c=+t.dataset.c||0;
+      d.querySelectorAll('td,th').forEach(x=>{x.classList.toggle('ln',(r&&+x.dataset.r===r)||(c&&+x.dataset.c===c));x.classList.toggle('hit',r&&c&&+x.dataset.r===r&&+x.dataset.c===c)});
+      d.querySelector('#mulres').textContent=r&&c?`${r} × ${c} = ${r*c}`:'';
+    });
+  }
+  d.style.setProperty('--tc',getComputedStyle(app).getPropertyValue('--tc'));
+  d.querySelectorAll('.ln,.hit').forEach(x=>x.classList.remove('ln','hit'));d.querySelector('#mulres').textContent='';
+  d.showModal();
 }
 
 /* ---------- תשובות ---------- */
@@ -512,7 +553,7 @@ function confetti(){
   setTimeout(()=>c.innerHTML='',4500);
 }
 document.addEventListener('keydown',e=>{
-  if(!S)return;
+  if(!S||document.querySelector('dialog[open]'))return;  // לוח הכפל פתוח: המקשים לא נכנסים לתשובה
   if(S.done&&e.key==='Enter'){if(document.activeElement!==document.getElementById('nx')){e.preventDefault();go()}return}
   const q=S.qs&&S.qs[S.i];if(!q||q.t!=='num'||S.done)return;
   if(/^[0-9]$/.test(e.key))key(e.key);else if(e.key==='.')key('.');else if(e.key==='Backspace')key('del');else if(e.key==='Enter'){e.preventDefault();key('ok')}
