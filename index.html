@@ -226,6 +226,8 @@ svg .ruler{fill:color-mix(in srgb,var(--hl) 55%,var(--paper));stroke:var(--ink);
 svg .guide{stroke:var(--ink-soft);stroke-width:1.5;stroke-dasharray:4 4}
 svg .tf{fill:var(--paper);stroke:var(--ink-soft);stroke-width:1.5}
 svg .cnt{fill:var(--tc)}
+svg .fpt{fill:var(--paper);stroke:var(--ink);stroke-width:2;stroke-linejoin:round}
+svg .fpt.fsh{fill:color-mix(in srgb,var(--tc) 75%,var(--paper))}  /* שברים: חלק צבוע */
 svg .mth{fill:var(--tc);stroke:var(--paper);stroke-width:2}
 svg .mtc{fill:var(--ink);stroke:var(--paper);stroke-width:2}
 svg .mtd{fill:var(--paper);stroke:var(--grid);stroke-width:2}
@@ -409,7 +411,7 @@ const topicOf=q=>GRADES[q.grade].topics.find(t=>t.id===q.topic);
 function question(){
   const q=S.qs[S.i],T=topicOf(q);S.tries=0;S.input='';S.done=false;S.gridOn=false;S.g=null;
   app.style.setProperty('--tc',COLOR(T.c));
-  const opt=o=>/^(\d+ )?\d+\/\d+$/.test(o)?fhtml(o):/\p{Extended_Pictographic}/u.test(o)?`<span class="emo">${o}</span>`:/^[A-Za-z]/.test(o)?`<span class="ltr" lang="en">${esc(o)}</span>`:`<span class="ltr">${esc(o)}</span>`;
+  const opt=o=>/^(\d+ )?\d+\/\d+$/.test(o)?fhtml(o):/\p{Extended_Pictographic}/u.test(o)?`<span class="emo">${o}</span>`:/^[A-Za-z]/.test(o)?`<span class="ltr" lang="en">${esc(o)}</span>`:/\p{Script=Hebrew}/u.test(o)?`<span>${esc(o)}</span>`:`<span class="ltr">${esc(o)}</span>`;  // עברית (למשל "4 ק״ג") מימין לשמאל
   app.innerHTML=`
   <div class="bar"><button class="pill" id="quit">→ לתפריט</button><span class="count">שאלה ${L(S.i+1)} מתוך ${L(NQ)}</span><span class="timer" id="timer">⏱ 0:00</span><span class="stars"><span class="st" id="st">⭐</span><b>${L(S.stars)}</b></span></div>
   <div class="progress"><i style="width:${S.i/NQ*100}%"></i></div>

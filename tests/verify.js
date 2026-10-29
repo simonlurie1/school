@@ -132,6 +132,23 @@ function heBinyan(w) {
   return '?';
 }
 
+const primeTrial = n => { if (n < 2) return false; for (let i = 2; i * i <= n; i++) if (n % i === 0) return false; return true; };
+/* צירי סימטריה של מצולע: מנסים כל ישר דרך מרכז הקודקודים ודרך קודקוד או אמצע צלע, ובודקים שהשיקוף מחזיר את אותם קודקודים */
+function symmetryAxes(P) {
+  const cx = P.reduce((a, p) => a + p[0], 0) / P.length, cy = P.reduce((a, p) => a + p[1], 0) / P.length;
+  const cand = [...P, ...P.map((p, i) => [(p[0] + P[(i + 1) % P.length][0]) / 2, (p[1] + P[(i + 1) % P.length][1]) / 2])];
+  const angles = [];
+  for (const [x, y] of cand) {
+    if (Math.hypot(x - cx, y - cy) < 1e-9) continue;
+    const t = Math.atan2(y - cy, x - cx), ux = Math.cos(t), uy = Math.sin(t);
+    const refl = ([px, py]) => { const dx = px - cx, dy = py - cy, k = dx * ux + dy * uy; return [cx + 2 * k * ux - dx, cy + 2 * k * uy - dy]; };
+    if (!P.every(p => { const r = refl(p); return P.some(o => Math.hypot(o[0] - r[0], o[1] - r[1]) < 1e-3); })) continue;  // קודקודי מצולע משוכלל מעוגלים ל־4 ספרות
+    const a = ((t % Math.PI) + Math.PI) % Math.PI;
+    if (!angles.some(b => Math.abs(b - a) < 1e-3 || Math.abs(Math.abs(b - a) - Math.PI) < 1e-3)) angles.push(a);
+  }
+  return angles.length;
+}
+
 /* ---------- חישוב מחדש לפי סוג השאלה ----------
  * כל פונקציה מחזירה את התשובה הצפויה, או undefined אם אין לה מספיק מידע. */
 const RECOMPUTE = {
@@ -143,6 +160,20 @@ const RECOMPUTE = {
     const line = d.cells.filter(([a, b]) => (d.ask === 'row' ? a : b) === d.h).map(([a, b, v]) => v / (d.ask === 'row' ? b : a));
     return line.length >= 3 && line.every(x => x === line[0]) ? line[0] : 'header not recoverable';
   },
+  // שבר צבוע: סופרים את החלקים בציור עצמו
+  fshade: (d, q) => { const all = (q.vis.match(/class="fpt/g) || []).length, on = (q.vis.match(/class="fpt fsh"/g) || []).length, g = gcd(on, all); return `${on / g}/${all / g}`; },
+  // סימטריה: כל משבצת צבועה צריכה תאומה בצד השני של הציר
+  sym: d => { const s = new Set(d.cells.map(([x, y]) => x + ',' + y)); return d.cells.every(([x, y]) => s.has((d.W - 1 - x) + ',' + y)) ? 'כן' : 'לא'; },
+  symaxes: d => symmetryAxes(d.P),
+  divis: d => d.n % d.by === 0 ? 'כן' : 'לא',
+  divpick: d => { const ok = d.opts.filter(o => +o % d.by === 0); return ok.length === 1 ? ok[0] : `${ok.length} options divisible`; },
+  missdig: d => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].find(x => +`${d.pre}${x}${d.post}` % d.by === 0),
+  ndiv: d => { let c = 0; for (let i = 1; i <= d.n; i++) if (d.n % i === 0) c++; return c; },
+  prime: d => primeTrial(d.n) ? 'כן' : 'לא',
+  primepick: d => { const ok = d.opts.filter(o => primeTrial(+o)); return ok.length === 1 ? ok[0] : `${ok.length} primes`; },
+  gcd: d => gcd(d.a, d.b),
+  lcm: d => { let m = Math.max(d.a, d.b); while (m % d.a || m % d.b) m++; return m; },
+  wcmp: d => d.kg * 1000 > d.g ? d.A : d.kg * 1000 < d.g ? d.B : d.same,
   eqn: (d, q) => close(calc(d.l.replace('?', `(${q.ans})`)), calc(d.r)) ? q.ans : `no: ${d.l}=${d.r}`,
   poly: (d, q) => d.ask === 'name' ? POLY[d.n] : (typeof q.ans === 'number' ? d.n : undefined),
   clock: d => `${d.h}:${pad2(d.m)}`,
