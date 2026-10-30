@@ -277,6 +277,13 @@ const RECOMPUTE = {
   'he-smi': d => (d.a.endsWith('יים') ? d.a.slice(0, -2) : d.a.endsWith('ים') ? d.a.slice(0, -2) + 'י' : d.a.endsWith('ה') ? d.a.slice(0, -1) + 'ת' : d.a) + ' ' + d.b,
   'he-prep': d => HE_PREP[d.p].split(' ')[d.i],
   'he-bin': d => heBinyan(d.w),
+  'he-read': (d, q) => {
+    // בשאלה בלי הסקה, התשובה כתובה בקטע כמילים שלמות ("תה" לא נחשב אם הוא רק בתוך "שותה")
+    const [text, qs] = HE.READ[d.lv][d.p], item = qs[d.qi];
+    if (new Set(q.opts).size !== q.opts.length) return 'duplicate options';
+    if (item[3]) return undefined;
+    return (' ' + text.replace(/[.,!?]/g, ' ') + ' ').includes(' ' + q.ans + ' ') ? q.ans : `answer "${q.ans}" not in the text`;
+  },
   'he-spell': (d, q) => {
     // כל טעות: אות אחת שהוחלפה באות שנשמעת אותו דבר, ולא מילה אמיתית אחרת
     const same = ['תט', 'כקח', 'חך', 'קך', 'אעה', 'סש'], real = ['מיתה', 'חלב', 'לכם', 'כפה', 'אשר', 'שאון', 'ארוכה', 'טחנה', 'תכנה', 'שיפור', 'מתוך', 'חתר', 'בתוך'];
@@ -321,6 +328,10 @@ const RECOMPUTE = {
   'en-prog': d => `${enBe(d.s)} ${enIng(d.v)}`,
   'en-past': d => enPast(d.v),
   'en-comp': d => enComp(d.a, d.most),
+  'en-rhyme': (d, q) => {
+    const rime = w => /[aeiou][^aeiou]e$/.test(w) ? w.slice(-3) : w.match(/[aeiou]+[^aeiou]*$/)[0];
+    const ok = q.opts.filter(o => rime(o) === rime(d.w)); return ok.length === 1 ? ok[0] : `${ok.length} options rhyme with ${d.w}`; },
+  'en-havegot': d => subjKind(d.s) === 's' ? 'has got' : 'have got',
   'en-there': (d, q) => { const n = [...q.vis.match(/class="pic"[^>]*>(.*?)<\/div>/)[1].matchAll(/\p{Extended_Pictographic}/gu)].length;
     return n === d.n ? (n === 1 ? 'is' : 'are') : `picture shows ${n}, data says ${d.n}`; },
   'en-can': (d, q) => {

@@ -391,6 +391,22 @@ function readQ() {
     ex: `${EN(qq)} ← ${EN(ans)}.`, hint: 'חפשו בקטע את המילים מהשאלה, והתשובה תהיה קרוב אליהן.', data: { k: 'en-read', p, qi } });
 }
 
+// חרוזים: מילים שנגמרות באותו צליל
+const RHYME = [['cat', 'hat', 'bat', 'mat', 'rat'], ['dog', 'frog', 'log'], ['sun', 'run', 'fun', 'bun'], ['pig', 'big', 'dig', 'wig'], ['ten', 'hen', 'pen'],
+  ['cake', 'lake', 'snake', 'make'], ['bee', 'tree', 'see', 'three'], ['box', 'fox'], ['bed', 'red'], ['car', 'star', 'jar'], ['ball', 'tall', 'wall'], ['cup', 'pup']];
+function rhymeQ() {
+  const g = pick(RHYME), [w, ans] = shuffle(g), wrong = shuffle(RHYME.filter(x => x !== g).flat()).slice(0, 3);
+  return Q({ prompt: `איזו מילה מתחרזת עם ${EN(w)}?`, vis: big(w), say: w, opts: [ans, ...wrong], ans,
+    ex: `${EN(`${w} – ${ans}`)}: שתיהן נגמרות באותו צליל.`, hint: 'אמרו את המילים בקול. מילים מתחרזות נשמעות אותו דבר בסוף.', data: { k: 'en-rhyme', w } });
+}
+// have got / has got
+function haveGotQ() {
+  const [s, t] = pick(SUBJ), w = pick(countable(2)), thing = `${/^[aeiou]/.test(w.en) ? 'an' : 'a'} ${w.en}`, ans = t === 's' ? 'has got' : 'have got';
+  const sent = `${s} ${BLANK} ${thing}.`;
+  return Q({ prompt: `בחרו: ${EN('have got')} או ${EN('has got')}`, vis: stack(pic(w.e), big(sent)), say: sayText(sent), opts: ['have got', 'has got'], ans,
+    ex: `${EN(`${s} ${ans} ${thing}.`)}`, hint: `${EN('he, she, it')} ואדם אחד ← ${EN('has got')}. ${EN('I, you, we, they')} ← ${EN('have got')}.`, data: { k: 'en-havegot', s } });
+}
+
 const EARLY = [
   { id: 'e-abc1', name: 'אותיות', sym: 'Aa', c: 'num', desc: 'אות גדולה ואות קטנה', gens: [() => caseQ(true), () => caseQ(false)] },
   { id: 'e-hear', name: 'שומעים ובוחרים', sym: '🔊', c: 'geo', desc: 'מקשיבים למילה ובוחרים תמונה', gens: [() => wordToPicQ(1)] },
@@ -399,6 +415,7 @@ const G3 = [
   { id: 'e-abc3', name: 'ה־ABC', sym: 'Aa', c: 'num', desc: 'אות גדולה וקטנה, סדר האותיות', gens: [() => caseQ(true), () => caseQ(false), abcSeqQ] },
   { id: 'e-first', name: 'האות הראשונה', sym: 'B?', c: 'ops', desc: 'באיזו אות מתחילה המילה', gens: [() => firstLetterQ(1)] },
   { id: 'e-pic3', name: 'מילים ותמונות', sym: '🐶', c: 'geo', desc: 'חיות, אוכל, חפצים וצבעים', gens: [() => picToWordQ(1), () => wordToPicQ(2)] },
+  { id: 'e-rhyme', name: 'חרוזים', sym: '♪', c: 'word', desc: EN('cat – hat, sun – run'), gens: [rhymeQ] },
   { id: 'e-num3', name: 'מספרים עד 20', sym: '123', c: 'eq', desc: 'קוראים וכותבים מספרים באנגלית', gens: [() => numQ(1, 20, 'word'), () => numQ(1, 20, 'digit')] }];
 const G4 = [
   { id: 'e-spell', name: 'איות', sym: 'c_t', c: 'ops', desc: 'משלימים את האות החסרה', gens: [() => spellQ(2)] },
@@ -410,7 +427,7 @@ const G4 = [
 const G5 = [
   { id: 'e-tr5', name: 'אוצר מילים', sym: '⇄', c: 'geo', desc: 'פעלים, תארים, משפחה ועוד', gens: [() => translateQ(2, 3)] },
   { id: 'e-opp', name: 'הפכים', sym: '↔', c: 'word', desc: `${EN('big ↔ small')}, ${EN('hot ↔ cold')}`, gens: [oppQ] },
-  { id: 'e-pres', name: EN('Present Simple'), sym: 's', c: 'div', desc: EN('she plays, he has, they go'), gens: [presentQ, beQ] },
+  { id: 'e-pres', name: EN('Present Simple'), sym: 's', c: 'div', desc: EN('she plays, he has, they go'), gens: [presentQ, beQ, haveGotQ] },
   { id: 'e-poss', name: EN('my / his / her, this / that'), sym: 'my', c: 'ops', desc: `${EN('her bag')}, ${EN('these books')}`, gens: [possQ, demQ] },
   { id: 'e-read5', name: 'הבנת הנקרא', sym: '📖', c: 'num', desc: 'קוראים קטע קצר ועונים', gens: [readQ] },
   { id: 'e-cal', name: 'ימים, חודשים ומספרים', sym: '📅', c: 'meas', desc: 'סדר הימים והחודשים, מספרים עד 100', gens: [orderQ, () => numQ(21, 99, 'word'), () => numQ(21, 99, 'digit')] }];
