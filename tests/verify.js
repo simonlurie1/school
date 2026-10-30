@@ -277,6 +277,29 @@ const RECOMPUTE = {
   'he-smi': d => (d.a.endsWith('יים') ? d.a.slice(0, -2) : d.a.endsWith('ים') ? d.a.slice(0, -2) + 'י' : d.a.endsWith('ה') ? d.a.slice(0, -1) + 'ת' : d.a) + ' ' + d.b,
   'he-prep': d => HE_PREP[d.p].split(' ')[d.i],
   'he-bin': d => heBinyan(d.w),
+  'he-spell': (d, q) => {
+    // כל טעות: אות אחת שהוחלפה באות שנשמעת אותו דבר, ולא מילה אמיתית אחרת
+    const same = ['תט', 'כקח', 'חך', 'קך', 'אעה', 'סש'], real = ['מיתה', 'חלב', 'לכם', 'כפה', 'אשר', 'שאון', 'ארוכה', 'טחנה', 'תכנה', 'שיפור', 'מתוך', 'חתר', 'בתוך'];
+    for (const o of q.opts) {
+      if (o === d.w) continue;
+      const diff = [...o].map((c, i) => i).filter(i => o[i] !== d.w[i]);
+      if (o.length !== d.w.length || diff.length !== 1) return `option ${o} is not one letter away`;
+      const i = diff[0];
+      if (!same.some(g => g.includes(o[i]) && g.includes(d.w[i]))) return `option ${o}: ${o[i]} does not sound like ${d.w[i]}`;
+      if (/[ךםןףץ]/.test(o.slice(0, -1)) || /[כמנפצ]$/.test(o)) return `option ${o} has a wrong final letter`;
+      if (real.includes(o)) return `option ${o} is a real word`;
+    }
+    return d.w;
+  },
+  'he-pos': d => HE_POS_NAME[hePos(d.w)],
+  'he-posfind': (d, q) => { const ok = q.opts.filter(o => hePos(o) === d.want); return ok.length === 1 ? ok[0] : `${ok.length} options are ${d.want}`; },
+  'he-sent': d => {
+    const parts = HE.SENT[d.i][0].split('|');
+    const verbs = parts.filter(p => hePos(p) === 'v');
+    const subjs = parts.filter(p => !/^(את|על|אל|מעל|עם) /.test(p) && !/^[בלמ]/.test(p) && hePos(p.split(' ')[0]) === 'n');
+    const ok = d.subj ? subjs : verbs; return ok.length === 1 ? ok[0] : `${ok.length} ${d.subj ? 'subjects' : 'predicates'}`;
+  },
+  'he-idiom': (d, q) => { const m = HE.IDIOM.find(p => p[0] === d.x)[1]; return q.opts.filter(o => o === m).length === 1 && new Set(HE.IDIOM.map(p => p[1])).size === HE.IDIOM.length ? m : 'duplicate meaning'; },
   // אנגלית
   'en-case': d => d.toSmall ? d.U.toLowerCase() : d.U,
   'en-seq': d => String.fromCharCode(65 + d.from + d.miss),
@@ -337,6 +360,18 @@ function generalProblems(q) {
     }
   }
   return p;
+}
+
+// חלקי דיבר: מילון נפרד מזה שבמנוע (ה הידיעה בתחילת המילה לא משנה)
+const HE_POS_W = {
+  n: 'ילד ילדה ילדים תפוח חתול חתולה ספה דני ספר ציפור ציפורים שיר סבתא עוגה תלמידים סיפור אמא שמלה רוח עץ פרח פרחים אבא מרק מורה פרפר נועה מיץ שמש דייג דייגים דג כלב דוור רופא תינוק גשם',
+  v: 'אכל ישן קרא שרה אפתה כתבו קנתה הפילה ציירה בישל סיפרה עף שתתה זרחה תפס נבח שיחקו יצאו ירד עפו תיקן חזרו פרחו הלכו בדק ישבו',
+  a: 'קטן קטנה אדום שחור יפה טעימה חרוצים ארוך חדשה חזקה שמחה צהוב חם חמה נחמדה מצחיק צבעוני קר מבוגר גדול רעב מעניין' };
+const HE_POS_NAME = { n: 'שם עצם', v: 'פועל', a: 'שם תואר' };
+function hePos(w) {
+  for (const t of ['v', 'n', 'a']) if (HE_POS_W[t].split(' ').includes(w)) return t;
+  if (w.startsWith('ה')) for (const t of ['n', 'a']) if (HE_POS_W[t].split(' ').includes(w.slice(1))) return t;
+  return 'x';
 }
 
 function recomputeProblem(q) {

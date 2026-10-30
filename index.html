@@ -345,7 +345,7 @@ function speechOf(q){
   if(/class="enw"/.test(vis))parts.push({text:q.say||toSpeech(vis).replace(/_+/g,'…'),lang:'en'});
   else if(vis.replace(/<div class="pic"[^>]*>.*?<\/div>/g,'').replace(/<[^>]+>/g,'').trim())parts.push(...htmlParts(vis.replace(/<div class="pic"[^>]*>.*?<\/div>/g,'')));
   else if(q.say)parts.push({text:q.say,lang:SUBJ==='eng'?'en':'he'});
-  if(q.t==='choice'&&!q.opts.some(o=>/\p{Extended_Pictographic}/u.test(o))){
+  if(q.t==='choice'&&!q.quiet&&!q.opts.some(o=>/\p{Extended_Pictographic}/u.test(o))){   // quiet: כתיב — כל האפשרויות נשמעות אותו דבר
     parts.push({text:'האפשרויות:',lang:'he'});
     const en=q.opts.every(o=>/^[A-Za-z]/.test(o));
     parts.push({text:q.opts.map(o=>PUNCT_NAME[o]||String(o).replace(/(\d+)\/(\d+)/g,'$1 חלקי $2')).join(', '),lang:en?'en':'he'});

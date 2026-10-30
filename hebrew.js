@@ -241,6 +241,83 @@ function connQ() {
     ex: `${s.replace('___', `<b>${ans}</b>`)} "${ans}" ← ${CONN_HE[ans]}.`, hint: 'אבל ← ניגוד. כי ← סיבה. לכן ← תוצאה. אם ← תנאי.', data: { k: 'he-conn', i } });
 }
 
+/* ===== כתיב: אותיות שנשמעות אותו דבר ===== */
+// שומעים את המילה ובוחרים את הכתיב הנכון. הטעויות: מחליפים אות אחת באות שנשמעת כמוה.
+const SPELL = {
+  2: ['תפוח', 'תות', 'מטוס', 'חתול', 'טבעת', 'תיק', 'כיתה', 'עכבר', 'כוכב', 'כדור', 'מכונית', 'עוגה', 'אבטיח', 'חולצה', 'אבא', 'סבתא', 'שמלה', 'שמחה', 'סוס',
+    'כתר', 'חטיף', 'תינוק', 'מתנה'],
+  3: ['מחברת', 'אוטובוס', 'אתמול', 'תמונה', 'שטיח', 'שולחן', 'קטן', 'עגבנייה', 'מטבח', 'מטרייה', 'טעים', 'חכם', 'עכשיו', 'קטיף', 'אוכל', 'כביש', 'חתונה',
+    'ארוחה', 'שקט', 'תקווה', 'אחות', 'טרקטור', 'בטוח'] };
+const SOUND = { ת: 'ט', ט: 'ת', כ: 'קח', ק: 'כ', ח: 'כ', ך: 'ח', א: 'ע', ע: 'א', ס: 'ש', ש: 'ס' };
+// החלפות שיוצאות מילה אמיתית אחרת (חלב, מיתה...) — לא מציגים אותן כטעות
+const SPELL_REAL = ['מיתה', 'חלב', 'לכם', 'כפה', 'אשר', 'שאון', 'ארוכה', 'טחנה', 'תכנה', 'משיבה', 'שיפור', 'כיר', 'שפר', 'מתוך', 'כוף', 'חתר', 'תכווה', 'בתוך'];
+function misspell(w) {
+  const out = new Set();
+  [...w].forEach((c, i) => {
+    const last = i === w.length - 1;
+    for (let r of (SOUND[c] || '') + (last && c === 'ה' ? 'א' : '') + (last && c === 'א' ? 'ה' : '')) {
+      if (last && r === 'כ') r = 'ך';
+      out.add(w.slice(0, i) + r + w.slice(i + 1));
+    }
+  });
+  return [...out].filter(x => !SPELL_REAL.includes(x));
+}
+function spellQ(g) {
+  const w = pick(SPELL[g]), wrong = misspell(w), e = picOf(w);
+  const diff = (a, b) => [...a].findIndex((c, i) => c !== b[i]);
+  const tricky = [...new Set(wrong.map(x => { const i = diff(w, x), a = w[i], b = x[i]; return (a === 'ח' || b === 'ח' ? [a, b] : [plain(a), plain(b)]).join('/'); }))];
+  return Q({ prompt: 'הקשיבו למילה. איך כותבים אותה נכון?', vis: e ? pic(e) : '', say: w, quiet: true, opts: withOpts(w, wrong, g === 2 ? 3 : 4), ans: w,
+    ex: `כותבים <b>${w}</b>. ${tricky.length ? `שימו לב ל־${tricky.join(', ')}: הן נשמעות אותו דבר.` : ''}`,
+    hint: 'ת ו־ט, כ ו־ק, כ ו־ח, א ו־ע, ס ו־שׂ נשמעות אותו דבר. נסו להיזכר איך המילה נראית בספר.', data: { k: 'he-spell', w } });
+}
+
+/* ===== חלקי דיבר ===== */
+// n = שם עצם, v = פועל, a = שם תואר, x = אחר (לא שואלים עליו)
+const POS = [['הילד הקטן אכל תפוח אדום', 'navna'], ['החתול השחור ישן על הספה', 'navxn'], ['דני קרא ספר מעניין', 'nvna'], ['הציפור הקטנה שרה שיר יפה', 'navna'],
+  ['סבתא אפתה עוגה טעימה', 'nvna'], ['התלמידים החרוצים כתבו סיפור ארוך', 'navna'], ['אמא קנתה שמלה חדשה', 'nvna'], ['הרוח החזקה הפילה את העץ', 'navxn'],
+  ['הילדה השמחה ציירה פרח צהוב', 'navna'], ['אבא בישל מרק חם', 'nvna'], ['המורה הנחמדה סיפרה סיפור מצחיק', 'navna'], ['הפרפר הצבעוני עף מעל הפרחים', 'navxn'],
+  ['נועה שתתה מיץ קר', 'nvna'], ['השמש החמה זרחה בבוקר', 'navx'], ['הדייג המבוגר תפס דג גדול', 'navna'], ['הכלב הרעב נבח על הדוור', 'navxn']];
+const POS_HE = { n: 'שם עצם', v: 'פועל', a: 'שם תואר' };
+const POS_WHY = { n: 'שם של דבר, בעל חיים, אדם או מקום', v: 'מילה שאומרת מה עושים', a: 'מילה שמתארת איך משהו (או מישהו) נראה או מרגיש' };
+function posQ() {
+  const [s, tags] = pick(POS), ws = s.split(' '), idx = ws.map((_, i) => i).filter(i => tags[i] !== 'x');
+  if (Math.random() < .5) {
+    const i = pick(idx), ans = POS_HE[tags[i]];
+    return Q({ prompt: 'איזה חלק דיבר המילה המודגשת?', vis: big(ws.map((w, j) => j === i ? `<b><u>${w}</u></b>` : w).join(' ') + '.'), opts: Object.values(POS_HE), ans,
+      ex: `<b>${ws[i]}</b> — ${ans}: ${POS_WHY[tags[i]]}.`, hint: 'שם עצם: מי או מה. פועל: מה עושים. שם תואר: איך הוא (גדול, שמח, אדום).', data: { k: 'he-pos', w: ws[i] } });
+  }
+  const want = pick(['n', 'v', 'a']), ans = ws[pick(idx.filter(i => tags[i] === want))];
+  const others = idx.filter(i => tags[i] !== want).map(i => ws[i]);
+  return Q({ prompt: `איזו מילה במשפט היא <b>${POS_HE[want]}</b>?`, vis: big(s + '.'), opts: [ans, ...shuffle(others).slice(0, 3)], ans,
+    ex: `<b>${ans}</b> — ${POS_HE[want]}: ${POS_WHY[want]}.`, hint: 'שם עצם: מי או מה. פועל: מה עושים. שם תואר: איך הוא (גדול, שמח, אדום).', data: { k: 'he-posfind', want } });
+}
+
+/* ===== נושא ונשוא ===== */
+// חלקי המשפט מופרדים ב־|; [משפט, מקום הנושא, מקום הנשוא]
+const SENT = [['הילדים|שיחקו|בחצר', 0, 1], ['סבתא|אפתה|את העוגה', 0, 1], ['בבוקר|יצאו|הילדים|לטיול', 2, 1], ['הכלב של דני|נבח|על החתול', 0, 1],
+  ['אתמול|ירד|גשם חזק', 2, 1], ['המורה|סיפרה|לנו|על הים', 0, 1], ['הציפורים|עפו|אל הקן', 0, 1], ['אבא שלי|תיקן|את האופניים', 0, 1],
+  ['בערב|חזרו|הדייגים|מהים', 2, 1], ['הרוח|הפילה|את העץ', 0, 1], ['בגינה|פרחו|פרחים צבעוניים', 2, 1], ['דני ונועה|הלכו|לספרייה', 0, 1],
+  ['השמש|זרחה|מעל ההרים', 0, 1], ['הרופא|בדק|את התינוק', 0, 1], ['בכיתה|ישבו|התלמידים|בשקט', 2, 1], ['החתולה|שתתה|חלב|מהצלחת', 0, 1]];
+function sentQ() {
+  const i = rnd(0, SENT.length - 1), [s, si, pi] = SENT[i], parts = s.split('|'), subj = Math.random() < .5, ans = parts[subj ? si : pi];
+  return Q({ prompt: `מה ה${subj ? 'נושא' : 'נשוא'} במשפט?`, vis: big(parts.join(' ') + '.'), opts: parts.slice(), ans,
+    ex: `נושא: <b>${parts[si]}</b> (מי עשה?). נשוא: <b>${parts[pi]}</b> (מה עשה?).`, hint: 'נשוא: מה קרה, מה עשו (הפועל). נושא: מי או מה עשה את זה. שאלו: מי ' + parts[pi] + '?',
+    data: { k: 'he-sent', i, subj } });
+}
+
+/* ===== ניבים וביטויים ===== */
+const IDIOM = [['על קצה המזלג', 'בקצרה, רק מעט'], ['בשבע עיניים', 'בזהירות רבה'], ['ראש גדול', 'עושה יותר ממה שביקשו ממנו'], ['ירד מהפסים', 'יצא משליטה'],
+  ['שם רגליים', 'ברח מהר'], ['עשה אוזן ערלה', 'התעלם, לא הקשיב'], ['הכה על חטא', 'הודה בטעות והצטער'], ['בין הפטיש לסדן', 'במצב קשה, בין שני לחצים'],
+  ['אין עשן בלי אש', 'לכל שמועה יש סיבה'], ['טמן את ראשו בחול', 'התעלם מבעיה ולא רצה לראות אותה'], ['שבר את הראש', 'התאמץ מאוד לחשוב'],
+  ['קיבל רגליים קרות', 'פחד ברגע האחרון'], ['היה על הגובה', 'עמד במשימה בהצלחה'], ['הרים ידיים', 'ויתר'], ['יצא מהכלים', 'כעס מאוד'],
+  ['על קצה הלשון', 'כמעט נזכר במילה'], ['נתן כתף', 'עזר'], ['עשה מעז פיל', 'הגזים, עשה מדבר קטן עניין גדול'], ['ישן כמו בול עץ', 'ישן עמוק מאוד'],
+  ['פתח דף חדש', 'התחיל מחדש']];
+function idiomQ() {
+  const [x, ans] = pick(IDIOM);
+  return Q({ prompt: `מה הפירוש של הביטוי <b>${x}</b>?`, vis: big(`"${x}"`), opts: withOpts(ans, IDIOM.map(p => p[1])), ans,
+    ex: `"${x}" — ${ans}.`, hint: 'ביטוי לא מתכוון למילים כפשוטן. דמיינו מתי אומרים אותו.', data: { k: 'he-idiom', x } });
+}
+
 /* ===== נושאים לפי כיתה ===== */
 const G1 = [
   { id: 'h-first', name: 'האות הראשונה', sym: 'א?', c: 'num', desc: 'באיזו אות מתחילה המילה', gens: [firstLetterQ] },
@@ -250,34 +327,40 @@ const G2 = [
   { id: 'h-dict2', name: 'סדר אל"ף־בי"תי', sym: 'אב', c: 'ops', desc: 'איזו מילה באה ראשונה במילון', gens: [() => dictQ(false), letterOrderQ] },
   { id: 'h-gender', name: 'זכר ונקבה', sym: '♂♀', c: 'div', desc: 'הילד הולך, הילדה הולכת', gens: [agreeQ] },
   { id: 'h-plural2', name: 'יחיד ורבים', sym: '1+', c: 'geo', desc: 'ספר ← ספרים, עוגה ← עוגות', gens: [() => pluralQ(false)] },
+  { id: 'h-spell2', name: 'כתיב', sym: 'ת/ט', c: 'num', desc: 'שומעים מילה ובוחרים איך כותבים', gens: [() => spellQ(2)] },
   { id: 'h-opp2', name: 'הפכים', sym: '↔', c: 'word', desc: 'גדול ↔ קטן, חם ↔ קר', gens: [() => pairQ(OPP, 'opp')] }];
 const G3 = [
   { id: 'h-punct', name: 'סימני פיסוק', sym: '?!', c: 'eq', desc: 'נקודה, סימן שאלה, סימן קריאה', gens: [punctQ] },
   { id: 'h-tense3', name: 'עבר, הווה ועתיד', sym: '⏳', c: 'meas', desc: 'אתמול, עכשיו, מחר', gens: [tenseQ, whichTenseQ] },
   { id: 'h-syn3', name: 'מילים נרדפות והפכים', sym: '=', c: 'word', desc: 'יפה = נאה, גדול ↔ קטן', gens: [() => pairQ(SYN, 'syn'), () => pairQ(OPP, 'opp')] },
   { id: 'h-plural3', name: 'יחיד ורבים', sym: '1+', c: 'geo', desc: 'גם מילים יוצאות דופן: אישה ← נשים', gens: [() => pluralQ(true)] },
+  { id: 'h-spell3', name: 'כתיב', sym: 'כ/ח', c: 'num', desc: 'ת/ט, כ/ק/ח, א/ע, ס/ש', gens: [() => spellQ(3)] },
   { id: 'h-dict3', name: 'סדר מילון', sym: 'אב', c: 'ops', desc: 'מילים שמתחילות באותה אות', gens: [() => dictQ(true)] }];
 const G4 = [
   { id: 'h-root4', name: 'שורש', sym: '√', c: 'div', desc: 'מוצאים את 3 אותיות השורש', gens: [rootQ] },
   { id: 'h-person', name: 'גופים', sym: 'אני', c: 'num', desc: 'כתבתי, כתבנו, כתבו — מי עשה?', gens: [personQ] },
   { id: 'h-tense4', name: 'זמנים והתאמה', sym: '⏳', c: 'meas', desc: 'זמן הפועל, זכר ונקבה', gens: [tenseQ, whichTenseQ, agreeQ] },
+  { id: 'h-pos', name: 'חלקי דיבר', sym: 'פ', c: 'eq', desc: 'שם עצם, פועל, שם תואר', gens: [posQ] },
   { id: 'h-syn4', name: 'אוצר מילים', sym: '=', c: 'word', desc: 'מילים נרדפות והפכים', gens: [() => pairQ(SYN, 'syn'), () => pairQ(OPP, 'opp')] }];
 const G5 = [
   { id: 'h-smi', name: 'סמיכות', sym: 'ת', c: 'eq', desc: 'עוגה של שוקולד ← עוגת שוקולד', gens: [smiQ] },
   { id: 'h-prep', name: 'מילות יחס', sym: 'לי', c: 'ops', desc: 'ל + הוא = לו, של + אנחנו = שלנו', gens: [prepQ] },
+  { id: 'h-sent', name: 'נושא ונשוא', sym: 'מי?', c: 'geo', desc: 'מי עשה ומה עשה במשפט', gens: [sentQ] },
   { id: 'h-root5', name: 'שורש', sym: '√', c: 'div', desc: 'משפחות מילים', gens: [rootQ] },
   { id: 'h-syn5', name: 'אוצר מילים', sym: '=', c: 'word', desc: 'מילים נרדפות והפכים', gens: [() => pairQ(SYN, 'syn'), () => pairQ(OPP, 'opp')] }];
 const G6 = [
   { id: 'h-bin', name: 'בניינים', sym: 'הת', c: 'div', desc: 'קל, נפעל, פיעל, הפעיל, התפעל', gens: [binQ] },
   { id: 'h-conn', name: 'מילות קישור', sym: 'כי', c: 'word', desc: 'אבל, כי, לכן, אם', gens: [connQ] },
+  { id: 'h-idiom', name: 'ניבים וביטויים', sym: '💬', c: 'meas', desc: 'על קצה המזלג, הרים ידיים', gens: [idiomQ] },
+  { id: 'h-sent6', name: 'נושא ונשוא וחלקי דיבר', sym: 'מי?', c: 'num', desc: 'חלקי המשפט וסוגי המילים', gens: [sentQ, posQ] },
   { id: 'h-root6', name: 'שורש', sym: '√', c: 'geo', desc: 'משפחות מילים', gens: [rootQ] },
   { id: 'h-smi6', name: 'סמיכות ומילות יחס', sym: 'ת', c: 'eq', desc: 'עוגת שוקולד, שלנו, איתם', gens: [smiQ, prepQ] }];
 
 const GRADES = {
   1: { name: "כיתה א'", topics: G1 }, 2: { name: "כיתה ב'", topics: G2 }, 3: { name: "כיתה ג'", topics: G3 },
   4: { name: "כיתה ד'", topics: G4 }, 5: { name: "כיתה ה'", topics: G5 }, 6: { name: "כיתה ו'", topics: G6 } };
-const NOTE = { 1: 'לשון: אותיות וצלילים', 2: 'לשון: מילים ומשפטים', 3: 'לשון: משפטים ואוצר מילים', 4: 'לשון: שורש, גופים וזמנים',
-  5: 'לשון: סמיכות, מילות יחס ושורש', 6: 'לשון: בניינים ומילות קישור' };
+const NOTE = { 1: 'לשון: אותיות וצלילים', 2: 'לשון: מילים, משפטים וכתיב', 3: 'לשון: משפטים, כתיב ואוצר מילים', 4: 'לשון: שורש, חלקי דיבר, גופים וזמנים',
+  5: 'לשון: נושא ונשוא, סמיכות, מילות יחס ושורש', 6: 'לשון: בניינים, מילות קישור וניבים' };
 
 function generate(grade, topicId) {
   const T = GRADES[grade].topics.find(t => t.id === topicId); if (!T) throw new Error('no topic ' + topicId);
@@ -290,7 +373,7 @@ function makeRound(grade, topicIds, n = 10) {
   return out;
 }
 
-const API = { GRADES, NOTE, generate, makeRound, PIC, OPP, SYN, VERBS, PREP, CONN, PUNCT };
+const API = { GRADES, NOTE, generate, makeRound, PIC, OPP, SYN, VERBS, PREP, CONN, PUNCT, SENT, IDIOM };
 root.HEBREW = API;
 if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);
