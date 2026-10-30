@@ -424,7 +424,7 @@ function question(){
   <div class="bar"><button class="pill" id="quit">→ לתפריט</button><span class="count">שאלה ${L(S.i+1)} מתוך ${L(NQ)}</span><span class="timer" id="timer">⏱ 0:00</span><span class="stars"><span class="st" id="st">⭐</span><b>${L(S.stars)}</b></span></div>
   <div class="progress"><i style="width:${S.i/NQ*100}%"></i></div>
   <div class="page">
-    <div class="qhead"><span class="tag">${T.name}</span><span class="qbtns">${mulAllowed()?'<button class="mulbtn" id="mulb"><svg class="mulico" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 1h4v4H1zM6 1h4v4H6zM11 1h4v4h-4zM1 6h4v4H1zM6 6h4v4H6zM11 6h4v4h-4zM1 11h4v4H1zM6 11h4v4H6zM11 11h4v4h-4z"/></svg>לוח הכפל</button>':''}${CAN_SAY?'<button class="say" id="say" aria-label="הקראת השאלה">🔊</button>':''}</span></div>
+    <div class="qhead"><span class="tag">${T.name}</span><span class="qbtns">${mulAllowed()?MULBTN:''}${CAN_SAY?'<button class="say" id="say" aria-label="הקראת השאלה">🔊</button>':''}</span></div>
     <div class="prompt">${q.prompt}</div>
     ${q.vis?`<div class="visual">${q.vis}</div>`:''}
     ${q.vg?`<div class="visual" style="flex-direction:column;align-items:center">${gridHTML(...q.vg)}</div>`:''}
@@ -489,8 +489,9 @@ function openHelper(){
   });
 }
 
-/* ---------- לוח הכפל: בתרגול חשבון מכיתה ב' (לא במבחן לדוגמה ולא במבחן מותאם, שם הוא היה נותן את התשובה) ---------- */
-const mulAllowed=()=>SUBJ==='math'&&GRADE>=2&&S&&S.key!=='__mix'&&S.key!=='__custom'&&!S.ids.includes('mtab');  // בהשלמת לוח הכפל הוא היה נותן את התשובה
+/* ---------- לוח הכפל: בתרגול חשבון מכיתה ב', גם בהשלמת לוח הכפל (לא במבחן לדוגמה ולא במבחן מותאם) ---------- */
+const mulAllowed=()=>SUBJ==='math'&&GRADE>=2&&S&&S.key!=='__mix'&&S.key!=='__custom';
+const MULBTN='<button class="mulbtn" id="mulb"><svg class="mulico" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 1h4v4H1zM6 1h4v4H6zM11 1h4v4h-4zM1 6h4v4H1zM6 6h4v4H6zM11 6h4v4h-4zM1 11h4v4H1zM6 11h4v4H6zM11 11h4v4h-4z"/></svg>לוח הכפל</button>';
 function openMul(){
   let d=document.getElementById('muldlg');
   if(!d){
@@ -570,7 +571,7 @@ function board(){
   <div class="bar"><button class="pill" id="quit">→ לתפריט</button><span class="count" id="cnt"></span><span class="timer" id="timer">⏱ 0:00</span><span class="stars"><span class="st" id="st">⭐</span><b>${L(0)}</b></span></div>
   <div class="progress"><i id="prog" style="width:0"></i></div>
   <div class="page">
-    <div class="qhead"><span class="tag">${T.name}</span></div>
+    <div class="qhead"><span class="tag">${T.name}</span><span class="qbtns">${MULBTN}</span></div>
     <div class="prompt">השלימו את המספרים החסרים בלוח הכפל. לוחצים על משבצת ריקה ומקלידים.</div>
     <table class="fill" id="fill"><tr><th class="corner">×</th>${n.map(c=>`<th data-c="${c}">${c}</th>`).join('')}</tr>
       ${n.map(r=>`<tr><th data-r="${r}">${r}</th>${n.map(c=>cells[r+','+c]?`<td class="b" data-r="${r}" data-c="${c}" role="button" aria-label="${r} כפול ${c}"></td>`:`<td data-r="${r}" data-c="${c}">${r*c}</td>`).join('')}</tr>`).join('')}</table>
@@ -580,6 +581,7 @@ function board(){
   </div>`;
   TICK=setInterval(()=>{const t=document.getElementById('timer');if(t&&S&&S.t0)t.textContent='⏱ '+mmss(Math.floor((Date.now()-S.t0)/1000))},1000);
   document.getElementById('quit').onclick=()=>up(`${SUBJ}/${GRADE}`);
+  document.getElementById('mulb').onclick=openMul;
   document.getElementById('hintb').onclick=()=>{const x=S.sel&&S.cells[S.sel];
     feedback('hint','רמז',x?`המשבצת בשורה של ${L(x.r)} ובעמודה של ${L(x.c)}: כמה זה ${L(`${x.r} × ${x.c}`)}? אפשר גם לספור בקפיצות של ${L(x.c)} לאורך העמודה.`:'מכפילים את המספר בתחילת השורה במספר בראש העמודה.')};
   document.querySelectorAll('#fill td.b').forEach(td=>td.onclick=()=>boardSel(td.dataset.r+','+td.dataset.c));
