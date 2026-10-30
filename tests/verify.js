@@ -454,6 +454,30 @@ function speechProblems(q) {
   return p;
 }
 
+/* ---------- התאמה לכיתה (חשבון): מה שתוכנית הלימודים לא מלמדת עד אותה כיתה ----------
+ * מקור: תוכנית הלימודים במתמטיקה לכיתות א'-ו' (משרד החינוך), ומסמך המיקוד לכיתות א'-ג'. */
+const GRADE_MAX = { 1: 100, 2: 1000, 3: 10000 };   // תחום המספרים בכל כיתה
+function gradeProblems(subj, g, q) {
+  if (subj !== 'math' || !q.data) return [];
+  const out = [], d = q.data, k = d.k, text = (q.prompt + ' ' + (q.vis || '')).replace(/<[^>]+>/g, ' ');
+  if (GRADE_MAX[g] && k !== 'mtab') { const big = (text.replace(/(\d),(\d{3})/g, '$1$2').match(/\d+/g) || []).map(Number).filter(n => n > GRADE_MAX[g]); if (big.length) out.push(`number above grade range (${GRADE_MAX[g]})`); }
+  if (g === 1 && k === 'dur' && [d.s, d.e].some(t => +t.split(':')[0] > 12 || +t.split(':')[1] !== 0)) out.push('grade 1 time: whole hours up to 12 only');
+  if (g <= 3 && k === 'expr' && /\//.test(d.e)) { const m = d.e.match(/(\d+)\/(\d+)/); if (m && +m[1] >= 100 && ![10, 100, 1000].includes(+m[2])) out.push('grade 1-3 division: dividend under 100 only'); }
+  if (g === 3 && ['fshade', 'fpart'].includes(k) && (d.n > 1 || (k === 'fshade' && !String(q.ans).startsWith('1/')))) out.push('grade 3 fractions: unit fractions only');
+  if (g === 3 && k === 'fcmp' && (d.a[0] !== 1 || d.b[0] !== 1)) out.push('grade 3 fractions: unit fractions only');
+  if (g <= 2 && /fshade|fpart|fcmp|fwhole|fop/.test(k)) out.push('fractions before grade 3');
+  if (g <= 2 && k === 'tri') out.push('triangle types before grade 3');
+  if (g <= 3 && (k === 'area' || ((k === 'grid' || k === 'rect') && d.ask === 'area'))) out.push('area in cm² before grade 4');
+  if (g <= 4 && k === 'quad') out.push('classifying quadrilaterals before grade 5');
+  if (k === 'solid' && ((g <= 4 && /מנסרה/.test(d.s)) || (g === 4 && !['קובייה', 'תיבה'].includes(d.s)))) out.push('solid not taught in this grade');
+  if (g <= 3 && /^(prime|primepick|ndiv)$/.test(k)) out.push('primes before grade 4');
+  if (/^(gcd|lcm)$/.test(k)) out.push('gcd/lcm are not in the elementary curriculum');
+  if (g <= 5 && /טרפז/.test(q.prompt) && /שטח/.test(q.prompt)) out.push('trapezoid area is not in the grade 5 core');
+  if (g <= 4 && /%/.test(text)) out.push('percent before grade 5');
+  if (g === 5 && (text.match(/(\d+)%/g) || []).some(p => ![10, 25, 50].includes(parseInt(p)))) out.push('grade 5 percent: 10%, 25%, 50% only');
+  return out;
+}
+
 /* ---------- הרצה ---------- */
 const fails = new Map();   // מפתח: כיתה/נושא/בעיה → { count, sample }
 const kinds = new Map();   // סוג → { total, recomputed }
@@ -475,6 +499,7 @@ for (const [subj, M] of ENGINES) {
         const ks = kinds.get(k) || { total: 0, recomputed: 0 }; ks.total++;
         for (const p of generalProblems(q)) note(`${subj} ${g}/${t.id}/${k}: ${p.replace(/[\d.]+/g, '#')}`, q);
         for (const p of speechProblems(q)) note(`${subj} ${g}/${t.id}/${k}: ${p}`, q);
+        for (const p of gradeProblems(subj, +g, q)) note(`${subj} ${g}/${t.id}/${k}: ${p}`, q);
         const r = recomputeProblem(q);
         if (q.data && RECOMPUTE[q.data.k]) ks.recomputed++;
         if (r) note(`${subj} ${g}/${t.id}/${k}: ${r.startsWith('checker') ? r.replace(/[\d.]+/g, '#') : 'wrong answer'}`, q);

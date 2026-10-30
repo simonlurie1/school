@@ -192,11 +192,11 @@ function clockQ(minStep) {
     ex: m === 0 ? `המחוג הקצר מצביע על ${h} והמחוג הארוך על 12, ולכן השעה ${ans}.` : `המחוג הקצר (שעות) ליד ${h}, המחוג הארוך (דקות) על ${m / 5}: ${m} דקות. השעה ${ans}.`,
     hint: 'המחוג הקצר מראה שעות. המחוג הארוך (הצבעוני) מראה דקות: כל מספר על השעון שווה 5 דקות.', data: { k: 'clock', h, m } });
 }
-function durQ(unit) { // unit: 'hr' | 'min'
-  if (unit === 'hr') {
-    const h = rnd(7, 16), m = pick([0, 0, 30]), d = rnd(1, 4), eh = h + d;
+function durQ(unit) { // unit: 'hr1' (כיתה א': שעות שלמות עד 12) | 'hr' | 'min'
+  if (unit === 'hr' || unit === 'hr1') {
+    const g1 = unit === 'hr1', d = rnd(1, g1 ? 3 : 4), h = g1 ? rnd(7, 12 - d) : rnd(7, 16), m = g1 ? 0 : pick([0, 0, 30]), eh = h + d;
     const P = pick([`הטיול התחיל ב־${L(tm(h, m))} ונגמר ב־${L(tm(eh, m))}. כמה שעות נמשך הטיול?`, `החוג מתחיל ב־${L(tm(h, m))} ונגמר ב־${L(tm(eh, m))}. כמה שעות נמשך החוג?`]);
-    return Q({ t: 'num', prompt: P, vis: '', ans: d, ex: `מ־${tm(h, m)} עד ${tm(eh, m)} עוברות ${d} שעות.`, hint: 'סופרים כמה פעמים עוברת שעה שלמה מההתחלה עד הסוף.', data: { k: 'dur', s: tm(h, m), e: tm(eh, m), unit } });
+    return Q({ t: 'num', prompt: P, vis: '', ans: d, ex: `מ־${tm(h, m)} עד ${tm(eh, m)} עוברות ${d} שעות.`, hint: 'סופרים כמה פעמים עוברת שעה שלמה מההתחלה עד הסוף.', data: { k: 'dur', s: tm(h, m), e: tm(eh, m), unit: 'hr' } });
   }
   const h = rnd(7, 17), m = pick([0, 10, 15, 20, 30, 40, 45]), d = pick([15, 20, 25, 30, 40, 45, 50, 60, 75, 90]), t = h * 60 + m + d, eh = Math.floor(t / 60), em = t % 60;
   const P = pick([`ההצגה התחילה ב־${L(tm(h, m))} ונגמרה ב־${L(tm(eh, em))}. כמה דקות נמשכה ההצגה?`, `הנסיעה לסבתא התחילה ב־${L(tm(h, m))} ונגמרה ב־${L(tm(eh, em))}. כמה דקות נמשכה הנסיעה?`]);
@@ -298,8 +298,8 @@ function rightAngleQ() {
     ex: has ? 'כן. יש פינה שנראית כמו פינה של דף (מסומנת בריבוע קטן).' : 'לא. אף פינה לא נראית בדיוק כמו פינה של דף.', hint: 'השוו כל פינה לפינה של דף.', data: { k: 'right', P } });
 }
 const SOLIDS = { 'קובייה': [6, 12, 8], 'תיבה': [6, 12, 8], 'מנסרה משולשת': [5, 9, 6], 'פירמידה מרובעת': [5, 8, 5], 'פירמידה משולשת': [4, 6, 4] };
-function solidQ() {
-  const s = pick(Object.keys(SOLIDS)), pi = rnd(0, 2), w = ['פאות', 'מקצועות', 'קודקודים'][pi];
+function solidQ(list = Object.keys(SOLIDS)) {
+  const s = pick(list), pi = rnd(0, 2), w = ['פאות', 'מקצועות', 'קודקודים'][pi];
   return Q({ t: 'num', prompt: `כמה ${w} יש ל${s}?`, vis: '', ans: SOLIDS[s][pi], ex: `ל${s} יש ${SOLIDS[s][0]} פאות, ${SOLIDS[s][1]} מקצועות ו־${SOLIDS[s][2]} קודקודים.`, hint: 'פאה היא "קיר" שטוח, מקצוע הוא קו שבו שתי פאות נפגשות, וקודקוד הוא פינה.', data: { k: 'solid', s, pi } });
 }
 
@@ -350,8 +350,8 @@ function fracSvg(n, d, kind, scatter) {
   }
   return svg(s, 2 * C, 2 * C);
 }
-function fracShadeQ(ds) {
-  const d = pick(ds); let n; do { n = rnd(1, d - 1); } while (gcd(n, d) !== 1);
+function fracShadeQ(ds, unit) { // unit: רק שבר יסודי (מונה 1), כמו בכיתה ג'
+  const d = pick(ds); let n; do { n = unit ? 1 : rnd(1, d - 1); } while (gcd(n, d) !== 1);
   const c = fracChoice([n, d], [[d - n, d], [n, d + 1], [n, d - 1], [n + 1, d], [1, d + 1], [n, 2 * d], [d - n, d + 1]].filter(([a, b]) => a < b));
   return Q({ t: 'choice', prompt: 'איזה חלק מהצורה צבוע?', vis: fracSvg(n, d, pick(['bar', 'circle']), d > 2 && Math.random() < .4), opts: c.opts, ans: c.ans,
     ex: `הצורה מחולקת ל־${d} חלקים שווים, ו־${n} מהם צבועים: ${c.ans}`, hint: 'ספרו לכמה חלקים שווים הצורה מחולקת (המספר למטה), וכמה מהם צבועים (המספר למעלה).', data: { k: 'fshade' } });
@@ -362,14 +362,11 @@ function fracWholeQ() {
   return wordQ(w === 1 ? `כמה ${FR_PL[d]} יש בשלם אחד?` : `כמה ${FR_PL[d]} יש ב־${L(w)} שלמים?`, `${w}*${d}`, w === 1 ? `בשלם יש ${d} ${FR_PL[d]}.` : `בכל שלם יש ${d} ${FR_PL[d]}: ${w} × ${d} = ${w * d}`, `כשמחלקים שלם אחד ל־${L(d)} חלקים שווים, כל חלק הוא ${fr(1, d)}.`, [d]);
 }
 function fracCmp3Q() {
-  if (Math.random() < .5) { // שברי יחידה: כמה שיותר חלקים, כל חלק קטן יותר
+  { // שברי יחידה (בכיתה ג' לומדים רק שברים יסודיים): כמה שיותר חלקים, כל חלק קטן יותר
     const a = rnd(2, 10); let b; do { b = rnd(2, 10); } while (b === a);
     return Q({ t: 'choice', prompt: 'איזה סימן מתאים?', vis: eq(`${fr(1, a)} ${BOX} ${fr(1, b)}`), opts: ['<', '=', '>'], ans: a < b ? '>' : '<',
       ex: `כשמחלקים ל־${Math.min(a, b)} חלקים, כל חלק גדול יותר מאשר כשמחלקים ל־${Math.max(a, b)} חלקים.`, hint: 'עוגה שמחולקת ל־2 או עוגה שמחולקת ל־8: איפה החתיכה גדולה יותר?', data: { k: 'fcmp', a: [1, a], b: [1, b] } });
   }
-  const d = pick([3, 4, 5, 6, 8, 10]), a = rnd(1, d - 1), b = rnd(1, d - 1); // אותו מכנה: משווים מונים
-  return Q({ t: 'choice', prompt: 'איזה סימן מתאים?', vis: eq(`${fr(a, d)} ${BOX} ${fr(b, d)}`), opts: ['<', '=', '>'], ans: a > b ? '>' : a < b ? '<' : '=',
-    ex: a === b ? 'אלה בדיוק אותם חלקים.' : `החלקים באותו גודל (${fr(1, d)}), אז משווים כמה חלקים יש: ${a} ${a > b ? '>' : '<'} ${b}.`, hint: 'המספר למטה שווה, אז החלקים באותו גודל. למי יש יותר חלקים?', data: { k: 'fcmp', a: [a, d], b: [b, d] } });
 }
 
 /* ===== התחלקות, מחלקים וראשוניים ===== */
@@ -415,16 +412,6 @@ function primePickQ() {
   const opts = [p]; while (opts.length < 4) { const x = rnd(4, 99); if (!isPrime(x) && x % 2 && !opts.includes(x)) opts.push(x); } // אי־זוגיים, כדי שלא יהיה קל מדי
   const o = shuffle(opts).map(String);
   return Q({ t: 'choice', prompt: 'איזה מהמספרים הוא מספר ראשוני?', vis: '', opts: o, ans: String(p), ex: `${p} מתחלק רק ב־1 ובעצמו. ${o.filter(x => +x !== p).map(x => `${x} = ${divisors(+x)[1]} × ${+x / divisors(+x)[1]}`).join(', ')}`, hint: 'נסו לחלק כל מספר ב־3, ב־5 וב־7.', data: { k: 'primepick', opts: o } });
-}
-function gcdQ() {
-  const g = rnd(2, 9); let x, y; do { x = rnd(2, 9); y = rnd(2, 9); } while (x === y || gcd(x, y) !== 1);
-  const a = g * x, b = g * y;
-  return Q({ t: 'num', prompt: `מה המחלק המשותף הגדול ביותר של ${L(a)} ושל ${L(b)}?`, vis: '', ans: g, ex: `${a} = ${g} × ${x}, ${b} = ${g} × ${y}. המחלק המשותף הגדול ביותר הוא ${g}.`, hint: 'כתבו את המחלקים של כל מספר, ומצאו את הגדול ביותר שמופיע בשתי הרשימות.', data: { k: 'gcd', a, b } });
-}
-function lcmQ() {
-  const a = rnd(2, 12); let b; do { b = rnd(2, 12); } while (b === a || a % b === 0 || b % a === 0);
-  const m = a * b / gcd(a, b);
-  return Q({ t: 'num', prompt: `מה הכפולה המשותפת הקטנה ביותר של ${L(a)} ושל ${L(b)}?`, vis: '', ans: m, ex: `הכפולות של ${Math.max(a, b)}: ${[1, 2, 3, 4].map(i => i * Math.max(a, b)).join(', ')}… הראשונה שמתחלקת גם ב־${Math.min(a, b)} היא ${m}.`, hint: `כתבו את הכפולות של המספר הגדול, ובדקו מתי מגיעים לכפולה של ${L(Math.min(a, b))}. ככה מוצאים מכנה משותף.`, data: { k: 'lcm', a, b } });
 }
 
 /* ===== משקל ונפח ===== */
@@ -479,8 +466,8 @@ function remQ(maxA) {
   return Q({ t: 'num', prompt: askQ ? 'כמה זה? (בלי השארית)' : 'מה השארית?', vis: `<div class="stack">${eq(askQ ? `${n} : ${a} = ${BOX}` : `${n} : ${a} = ${q}`)}<div class="eq small">שארית: ${askQ ? L(r) : BOX}</div></div>`, ans: askQ ? q : r,
     ex: `${a} × ${q} = ${a * q}, ו־${n} − ${a * q} = ${r}`, hint: `מצאו את הכפולה של ${L(a)} הכי קרובה ל־${L(n)} בלי לעבור אותו.`, data: { k: 'rem', n, a, ask: askQ ? 'q' : 'r' } });
 }
-function fracPartQ(ds, word) {
-  const d = pick(ds), n = d === 2 ? 1 : rnd(1, Math.min(4, d - 1)), kk = rnd(2, d >= 8 ? 6 : 9), tot = d * kk, ans = n * kk;
+function fracPartQ(ds, word, unit) {
+  const d = pick(ds), n = d === 2 || unit ? 1 : rnd(1, Math.min(4, d - 1)), kk = rnd(2, d >= 8 ? 6 : 9), tot = d * kk, ans = n * kk;
   const P = word ? pick([`בכיתה ${L(tot)} ילדים. ${fr(n, d)} מהם הלכו לחוג. כמה ילדים הלכו לחוג?`, `בקופסה ${L(tot)} עוגיות. אכלו ${fr(n, d)} מהן. כמה עוגיות אכלו?`]) : `כמה זה ${fr(n, d)} מ־${L(tot)}?`;
   return Q({ t: 'num', prompt: P, vis: '', ans, ex: `${tot} : ${d} = ${kk}${n > 1 ? `, ו־${kk} × ${n} = ${ans}` : ''}`, hint: `מחלקים את ${L(tot)} ל־${L(d)} חלקים שווים${n > 1 ? `, ולוקחים ${L(n)} חלקים` : ''}.`, data: { k: 'fpart', n, d, tot } });
 }
@@ -533,6 +520,11 @@ function tableBoard(grade) {
   return { n: 10, blanks };
 }
 
+/* שטח והיקף של מלבן על משבצות (שטח בסמ״ר: מכיתה ד') */
+const gridAreaQ = () => { const w = rnd(2, 9), h = rnd(2, 6); return Q({ t: 'num', prompt: 'כל משבצת היא 1 סמ״ר. מה השטח של המלבן הצבוע? (בסמ״ר)', vis: gridSvg(w, h), ans: w * h, ex: `${w} × ${h} = ${w * h}`, hint: 'סופרים כמה משבצות בשורה, וכמה שורות, וכופלים.', data: { k: 'grid', ask: 'area' } }); };
+const gridPerimQ = () => { const w = rnd(3, 9), h = rnd(2, 6); return Q({ t: 'num', prompt: 'כל משבצת היא 1 ס״מ. מה ההיקף של המלבן הצבוע? (בס״מ)', vis: gridSvg(w, h), ans: 2 * (w + h), ex: `${w} + ${h} + ${w} + ${h} = ${2 * (w + h)}`, hint: 'סופרים את הצלעות מסביב.', data: { k: 'grid', ask: 'perim' } }); };
+const rectAreaQ = () => { const a = rnd(3, 12), b = rnd(2, 9); return Q({ t: 'num', prompt: 'מה השטח של המלבן? (בסמ״ר)', vis: rectSvg(a, b), ans: a * b, ex: `${a} × ${b} = ${a * b}`, hint: 'שטח מלבן = אורך × רוחב.', data: { k: 'rect', a, b, ask: 'area' } }); };
+
 /* ===== כיתה א' (תוכנית חדשה) ===== */
 const G1 = [
   { id: 'count', name: 'מספרים עד 100', sym: '123', c: 'num', desc: 'מנייה, לפני ואחרי, השוואה, סדרות', gens: [
@@ -557,8 +549,8 @@ const G1 = [
     () => { const k = pick(KIDS), a = rnd(3, 12), b = rnd(2, 20 - a); return wordQ(`ל${k} היו ${L(a)} בלונים. ${v(k, 'הוא', 'היא')} ${v(k, 'קיבל', 'קיבלה')} עוד ${L(b)}. כמה בלונים יש ל${k} עכשיו?`, `${a}+${b}`, `${a} + ${b} = ${a + b}`, '"קיבל עוד" זה חיבור.'); },
     () => { const a = rnd(8, 20), b = rnd(2, a - 2); return wordQ(`על העץ ישבו ${L(a)} ציפורים. ${L(b)} ציפורים עפו. כמה ציפורים נשארו על העץ?`, `${a}-${b}`, `${a} − ${b} = ${a - b}`, '"עפו" ו"נשארו" זה חיסור.'); },
     () => { const a = rnd(3, 10), b = rnd(3, 10); return wordQ(`בסל יש ${L(a)} תפוחים אדומים ו־${L(b)} תפוחים ירוקים. כמה תפוחים יש בסל?`, `${a}+${b}`, `${a} + ${b} = ${a + b}`, 'מחברים את שני הסוגים.'); }] },
-  { id: 'shapes1', name: 'צורות', sym: '△', c: 'geo', desc: 'שמות של מצולעים, צלעות וקודקודים', gens: [() => polyNameQ(10), () => polyCountQ(8)] },
-  { id: 'meas1', name: 'אורך ושעון', sym: '⌚', c: 'meas', desc: 'מדידה בסרגל, שעות שלמות', gens: [() => rulerQ(false), () => clockQ(60), () => durQ('hr')] },
+  { id: 'shapes1', name: 'צורות', sym: '△', c: 'geo', desc: 'שמות של מצולעים, צלעות וקודקודים', gens: [() => polyNameQ(6), () => polyCountQ(8)] },
+  { id: 'meas1', name: 'אורך ושעון', sym: '⌚', c: 'meas', desc: 'מדידה בסרגל, שעות שלמות', gens: [() => rulerQ(false), () => clockQ(60), () => durQ('hr1')] },
   { id: 'chart1', name: 'תרשימים', sym: '▂▅▇', c: 'chart', desc: 'קריאת דיאגרמת עמודות', gens: [() => chartQ([1], ['val', 'max', 'min', 'diff'])] }];
 
 /* ===== כיתה ב' (תוכנית חדשה) ===== */
@@ -585,7 +577,7 @@ const G2 = [
     () => { const a = rnd(10, 40), b = rnd(10, 30), c = rnd(5, 99 - a - b); return wordQ(`ביום ראשון נקטפו ${L(a)} תפוזים, ביום שני ${L(b)}, וביום שלישי ${L(c)}. כמה תפוזים נקטפו בסך הכול?`, `${a}+${b}+${c}`, `${a} + ${b} + ${c} = ${a + b + c}`, 'מחברים את שלושת הימים.'); },
     () => { const p = rnd(12, 45), bill = p < 20 ? 20 : p < 50 ? 50 : 100; return wordQ(`ספר עולה ${L(p)} ₪. שילמו בשטר של ${L(bill)} ₪. כמה עודף מקבלים?`, `${bill}-${p}`, `${bill} − ${p} = ${bill - p}`, 'עודף = כמה ששילמנו פחות כמה שעלה.', [], [bill, p]); },
     () => { const list = shuffle([1000, 500, 200, 200, 100, 100, 1000, 500]).slice(0, rnd(3, 5)).sort((a, b) => b - a), tot = list.reduce((a, b) => a + b, 0) / 100; return Q({ t: 'num', prompt: 'כמה שקלים יש כאן בסך הכול?', vis: coinsSvg(list), ans: tot, ex: list.map(x => x / 100).join(' + ') + ` = ${tot}`, hint: 'מתחילים מהמטבע הגדול ומוסיפים.', data: { k: 'coins', list } }); }] },
-  { id: 'geo2', name: 'צורות וגופים', sym: '△', c: 'geo', desc: 'משולשים, זווית ישרה, גופים', gens: [triSidesQ, rightAngleQ, solidQ] },
+  { id: 'geo2', name: 'צורות וגופים', sym: '△', c: 'geo', desc: 'זווית ישרה, גופים: פאות, מקצועות וקודקודים', gens: [rightAngleQ, () => solidQ(['קובייה', 'תיבה', 'פירמידה מרובעת', 'פירמידה משולשת'])] },
   { id: 'meas2', name: 'אורך, היקף ושעון', sym: '⌚', c: 'meas', desc: 'סרגל, היקף, חצאי שעות', gens: [
     () => rulerQ(true),
     () => { const n = pick([3, 4]), s = [...Array(n)].map(() => rnd(2, 12)), nm = n === 3 ? 'משולש' : 'מרובע'; return wordQ(`ל${nm} צלעות באורך ${s.map(L).join(', ')} ס״מ. מה ההיקף שלו? (בס״מ)`, s.join('+'), `${s.join(' + ')} = ${s.reduce((a, b) => a + b)}`, 'היקף = סכום אורכי כל הצלעות.'); },
@@ -597,7 +589,7 @@ const GEM = { 'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ו': 6, 'ז': 7, 'ח
 const G3 = [
   { id: 'num3', name: 'מספרים עד 10,000', sym: '123', c: 'num', desc: 'ערך המקום, עיגול, סדרות, גימטרייה', gens: [
     () => digValQ(4), () => composeQ(4), () => roundQ(9999, [10, 100, 1000]),
-    () => { const a = rnd(1000, 9999); return cmpQ(String(a), String(Math.random() < .5 ? a + pick([-1, 1]) * pick([1, 10, 100, 1000]) : rnd(1000, 9999))); },
+    () => { const a = rnd(1000, 9999); let b = a + pick([-1, 1]) * pick([1, 10, 100, 1000]); if (b < 1000 || b > 9999) b = 2 * a - b; return cmpQ(String(a), String(Math.random() < .5 ? b : rnd(1000, 9999))); },
     () => retry(() => { const d = pick([20, 25, 50, 200, 250, 500, 1000]), down = Math.random() < .3; let s = rnd(1, 30) * (d >= 200 ? 100 : 10) + (d === 25 ? 25 * rnd(0, 3) : 0); if (down) s += d * 5; return seqQ(s, down ? -d : d, 6, 0, 10000); }),
     () => { const w = pick(['יג', 'כד', 'לב', 'מח', 'קנ', 'רמ', 'שלו', 'תקע', 'תר', 'קכ']); const ans = [...w].reduce((a, c) => a + GEM[c], 0); return Q({ t: 'num', prompt: `בגימטרייה, כמה שווה ${w}?`, vis: '', ans, ex: [...w].map(c => `${c}=${GEM[c]}`).join(', ') + `. ביחד: ${ans}`, hint: 'א–ט הן 1–9, י–צ הן העשרות (10–90), ק–ת הן המאות (100–400).', data: { k: 'gem', w } }); }] },
   { id: 'ops3', name: 'חיבור וחיסור', sym: '+−', c: 'ops', desc: 'במאונך עד 10,000, מאות ואלפים שלמים', gens: [
@@ -623,16 +615,16 @@ const G3 = [
   { id: 'geo3', name: 'זוויות ומשולשים', sym: '∠', c: 'geo', desc: 'סוגי זוויות, סוגי משולשים, היקף, סימטריה', gens: [
     () => angleQ(true), triAnglesQ, triSidesQ,
     () => { const t = pick(['שווה־צלעות', 'שווה־שוקיים']); if (t === 'שווה־צלעות') { const s = rnd(3, 15); return wordQ(`למשולש שווה־צלעות צלע באורך ${L(s)} ס״מ. מה ההיקף שלו? (בס״מ)`, `3*${s}`, `3 × ${s} = ${3 * s}`, 'במשולש שווה־צלעות כל 3 הצלעות שוות.', [3]); } const a = rnd(5, 12), b = rnd(3, a - 1); return wordQ(`למשולש שווה־שוקיים שוק באורך ${L(a)} ס״מ ובסיס באורך ${L(b)} ס״מ. מה ההיקף? (בס״מ)`, `2*${a}+${b}`, `${a} + ${a} + ${b} = ${2 * a + b}`, 'במשולש שווה־שוקיים יש 2 שוקיים שוות.', [2]); }, symQ] },
-  { id: 'area3', name: 'שטח והיקף', sym: '▦', c: 'chart', desc: 'שטח מלבן, משבצות, סמ״ר', gens: [
-    () => { const w = rnd(2, 9), h = rnd(2, 6); return Q({ t: 'num', prompt: 'כל משבצת היא 1 סמ״ר. מה השטח של המלבן הצבוע? (בסמ״ר)', vis: gridSvg(w, h), ans: w * h, ex: `${w} × ${h} = ${w * h}`, hint: 'סופרים כמה משבצות בשורה, וכמה שורות, וכופלים.', data: { k: 'grid', ask: 'area' } }); },
-    () => { const w = rnd(3, 9), h = rnd(2, 6); return Q({ t: 'num', prompt: 'כל משבצת היא 1 ס״מ. מה ההיקף של המלבן הצבוע? (בס״מ)', vis: gridSvg(w, h), ans: 2 * (w + h), ex: `${w} + ${h} + ${w} + ${h} = ${2 * (w + h)}`, hint: 'סופרים את הצלעות מסביב.', data: { k: 'grid', ask: 'perim' } }); },
-    () => { const a = rnd(3, 12), b = rnd(2, 9); return Q({ t: 'num', prompt: 'מה השטח של המלבן? (בסמ״ר)', vis: rectSvg(a, b), ans: a * b, ex: `${a} × ${b} = ${a * b}`, hint: 'שטח מלבן = אורך × רוחב.', data: { k: 'rect', a, b, ask: 'area' } }); }] },
+  { id: 'area3', name: 'היקף', sym: '▦', c: 'chart', desc: 'היקף של מצולע ושל מלבן על דף משבצות', gens: [
+    gridPerimQ,
+    () => { const n = pick([3, 4, 5, 6]), a = rnd(2, 12), nm = { 3: 'משולש שווה־צלעות', 4: 'ריבוע', 5: 'מחומש משוכלל', 6: 'משושה משוכלל' }[n]; return wordQ(`ל${nm} צלע באורך ${L(a)} ס״מ. מה ההיקף שלו? (בס״מ)`, `${n}*${a}`, `${n} × ${a} = ${n * a}`, `כל ${L(n)} הצלעות שוות.`, [n]); },
+    () => { const n = pick([3, 4, 5]), sd = [...Array(n)].map(() => rnd(3, 20)), nm = { 3: 'משולש', 4: 'מרובע', 5: 'מחומש' }[n]; return wordQ(`ל${nm} צלעות באורך ${sd.map(L).join(', ')} ס״מ. מה ההיקף שלו? (בס״מ)`, sd.join('+'), `${sd.join(' + ')} = ${sd.reduce((a, b) => a + b)}`, 'היקף = סכום אורכי כל הצלעות.'); }] },
   { id: 'meas3', name: 'מידות, כסף וזמן', sym: '⌚', c: 'meas', desc: 'מטר וס״מ, ק״ג וגרם, שקל ואגורות, שעון, משך זמן', gens: [
     () => { const m = rnd(2, 9); return Math.random() < .5 ? wordQ(`כמה סנטימטרים יש ב־${L(m)} מטרים?`, `${m}*100`, `במטר 100 ס״מ: ${m} × 100 = ${m * 100}`, 'במטר אחד יש 100 סנטימטרים.', [100]) : wordQ(`כמה מטרים הם ${L(m * 100)} סנטימטרים?`, `${m * 100}/100`, `${m * 100} : 100 = ${m}`, 'במטר אחד יש 100 סנטימטרים.', [100]); },
     () => { const s = rnd(2, 9); return Math.random() < .5 ? wordQ(`כמה אגורות יש ב־${L(s)} שקלים?`, `${s}*100`, `בשקל 100 אגורות: ${s} × 100 = ${s * 100}`, 'בשקל אחד יש 100 אגורות.', [100]) : wordQ(`כמה שקלים הם ${L(s * 100)} אגורות?`, `${s * 100}/100`, `${s * 100} : 100 = ${s}`, 'בשקל אחד יש 100 אגורות.', [100]); },
     () => clockQ(5), () => durQ('min'),
     () => { const h = rnd(13, 23), ans = `${h - 12} אחר הצהריים`; const opts = shuffle([ans, `${h - 10} אחר הצהריים`, `${h - 12 + 1} אחר הצהריים`, `${h % 10 || 10} בבוקר`]); return Q({ t: 'choice', prompt: `השעה ${L(tm(h, 0))}. איך אומרים אותה בשעון של 12 שעות?`, vis: '', opts: [...new Set(opts)], ans, ex: `${h} − 12 = ${h - 12}`, hint: 'אחרי 12 בצהריים מחסרים 12.', data: { k: 'h24', h } }); }, () => weightQ(1), weightCmpQ] },
-  { id: 'frac3', name: 'שברים', sym: '½', c: 'div', desc: 'חצי, רבע, שליש: חלק מצורה, חלק מכמות, השוואה', gens: [() => fracShadeQ([2, 3, 4, 6, 8]), () => fracShadeQ([2, 3, 4, 6, 8]), () => fracPartQ([2, 3, 4], false), () => fracPartQ([2, 4], true), fracWholeQ, fracCmp3Q] },
+  { id: 'frac3', name: 'שברים', sym: '½', c: 'div', desc: 'שברים יסודיים (חצי, שליש, רבע...): חלק מצורה, חלק מכמות, השוואה', gens: [() => fracShadeQ([2, 3, 4, 5, 6, 8, 10], true), () => fracPartQ([2, 3, 4, 5, 10], false, true), () => fracPartQ([2, 3, 4], true, true), fracWholeQ, fracCmp3Q] },
   { id: 'chart3', name: 'תרשימים', sym: '▂▅▇', c: 'chart', desc: 'דיאגרמת עמודות בקפיצות גדולות', gens: [() => chartQ([20, 25, 50])] }];
 
 /* ===== כיתה ד' (תוכנית 2006) ===== */
@@ -663,11 +655,12 @@ const G4 = [
     () => { const d = pick([4, 5, 6, 7, 8, 9, 10]), a = rnd(1, d - 2), b = rnd(1, d - 1 - a); const c = fracChoice([a + b, d], [[a + b, 2 * d], [a * b, d], [a + b + 1, d], [Math.abs(a - b) || 1, d], [a + b, d + d]]); return Q({ t: 'choice', prompt: 'כמה זה?', vis: eq(`${fr(a, d)} + ${fr(b, d)} = ${BOX}`), opts: c.opts, ans: c.ans, ex: `כשהמכנים שווים, מחברים רק את המונים: ${a} + ${b} = ${a + b}. התוצאה: ${c.ans}`, hint: 'המכנה (המספר למטה) נשאר אותו דבר.', data: { k: 'fop', op: '+', a: [a, d], b: [b, d] } }); }] },
   { id: 'word4', name: 'בעיות מילוליות', sym: '?', c: 'word', desc: 'להבין, לבחור פעולה, לפתור', gens: [...G3[4].gens,
     () => { const g = rnd(3, 6), k = rnd(4, 8), tot = g * k, a = rnd(Math.floor(tot / 3), Math.floor(tot * 2 / 3)); return wordQ(`בכיתה ${L(a)} בנים ו־${L(tot - a)} בנות. המורה חילקה את כולם לקבוצות של ${L(g)}. כמה קבוצות יש?`, `(${a}+${tot - a})/${g}`, `${a} + ${tot - a} = ${tot}, ואז ${tot} : ${g} = ${k}`, 'קודם כמה ילדים יש בכיתה (חיבור), ואחר כך חילוק לקבוצות.'); }] },
-  { id: 'geo4', name: 'גאומטריה', sym: '△', c: 'geo', desc: 'מקבילים ומאונכים, זוויות, משולשים, מרובעים, היקף ושטח, סימטריה, גופים', gens: [
-    linesQ, linesQ, () => angleQ(false), triAnglesQ, triSidesQ, quadQ,
+  { id: 'geo4', name: 'גאומטריה', sym: '△', c: 'geo', desc: 'מקבילים ומאונכים, זוויות, משולשים, היקף ושטח מלבן, סימטריה, תיבה', gens: [
+    linesQ, linesQ, () => angleQ(false), triAnglesQ, triSidesQ,
     () => { const a = rnd(5, 15), b = rnd(2, a - 1); return Q({ t: 'num', prompt: 'מה ההיקף של המלבן? (בס״מ)', vis: rectSvg(a, b), ans: 2 * (a + b), ex: `${a} + ${b} + ${a} + ${b} = ${2 * (a + b)}`, hint: 'היקף = סכום כל הצלעות.', data: { k: 'rect', a, b, ask: 'perim' } }); },
-    G3[6].gens[1], G3[6].gens[2], symQ, symAxesQ, solidQ] },
+    gridPerimQ, gridAreaQ, rectAreaQ, symQ, symAxesQ, () => solidQ(['קובייה', 'תיבה'])] },
   { id: 'meas4', name: 'מידות ושעון', sym: '⌚', c: 'meas', desc: 'סרגל, שעון, משך זמן, משקל ונפח', gens: [() => rulerQ(true), () => clockQ(5), () => durQ('min'), endTimeQ, () => weightQ(2), () => weightQ(2), weightCmpQ] },
+  { id: 'prime4', name: 'מחלקים וראשוניים', sym: '÷', c: 'num', desc: 'מחלקים, מספרים ראשוניים ופריקים', gens: [ndivQ, primeQ, primePickQ] },
   { id: 'divs4', name: 'סימני התחלקות', sym: '÷', c: 'num', desc: 'מתחלק ב־2, 5, 10 וב־3, 6, 9', gens: [() => divisQ([2, 5, 10]), () => divisQ([3, 6, 9]), () => divPickQ([2, 3, 5, 9, 10]), missDigQ] },
   { id: 'chart4', name: 'תרשימים', sym: '▂▅▇', c: 'chart', desc: 'קריאת נתונים מתרשים עמודות', gens: [() => chartQ([1, 2, 2, 5])] }];
 
@@ -695,16 +688,15 @@ const G5 = [
   { id: 'pct5', name: 'אחוזים וממוצע', sym: '%', c: 'word', desc: '10%, 25%, 50%, ממוצע', gens: [
     () => { const p = pick([10, 25, 50]), base = p === 10 ? rnd(2, 40) * 10 : p === 25 ? rnd(2, 40) * 4 : rnd(2, 99) * 2; return wordQ(`כמה זה ${L(p + '%')} מ־${L(base)}?`, `${base}*${p}/100`, `${p}% = ${p === 10 ? 'עשירית' : p === 25 ? 'רבע' : 'חצי'}, ולכן ${base} : ${100 / p} = ${base * p / 100}`, p === 50 ? '50% זה חצי.' : p === 25 ? '25% זה רבע.' : '10% זה עשירית: מחלקים ב־10.', [100]); },
     () => { const n = rnd(3, 5), avg = rnd(5, 30); let vals; do { vals = [...Array(n - 1)].map(() => rnd(Math.max(1, avg - 10), avg + 10)); vals.push(avg * n - vals.reduce((a, b) => a + b, 0)); } while (vals[n - 1] < 1); return Q({ t: 'num', prompt: `מה הממוצע של המספרים ${vals.map(L).join(', ')}?`, vis: '', ans: avg, ex: `${vals.join(' + ')} = ${avg * n}, ו־${avg * n} : ${n} = ${avg}`, hint: 'מחברים את כל המספרים ומחלקים בכמה מספרים יש.', data: { k: 'mean', vals } }); }] },
-  { id: 'geo5', name: 'מרובעים ושטחים', sym: '▱', c: 'geo', desc: 'סוגי מרובעים, שטח משולש, מקבילית וטרפז, סימטריה, גופים', gens: [
+  { id: 'geo5', name: 'מרובעים ושטחים', sym: '▱', c: 'geo', desc: 'סוגי מרובעים, שטח משולש ומקבילית, סימטריה', gens: [
     quadQ,
     () => { const b = rnd(3, 14), h = rnd(2, 10), hh = (b * h) % 2 ? h + 1 : h, off = rnd(-1, b + 1); return Q({ t: 'num', prompt: 'מה השטח של המשולש? (בסמ״ר)', vis: triBHSvg(b, hh, off), ans: b * hh / 2, ex: `בסיס × גובה : 2 = ${b} × ${hh} : 2 = ${b * hh / 2}`, hint: 'שטח משולש = בסיס כפול גובה, לחלק ב־2.', data: { k: 'area', shape: 'tri', b, h: hh } }); },
     () => { const b = rnd(3, 14), h = rnd(2, 10); return wordQ(`למקבילית בסיס באורך ${L(b)} ס״מ וגובה ${L(h)} ס״מ. מה השטח שלה? (בסמ״ר)`, `${b}*${h}`, `${b} × ${h} = ${b * h}`, 'שטח מקבילית = בסיס כפול הגובה אליו.'); },
-    () => { let a = rnd(3, 12), b = rnd(3, 12), h = rnd(2, 8); if ((a + b) * h % 2) h++; return wordQ(`לטרפז בסיסים באורך ${L(a)} ס״מ ו־${L(b)} ס״מ, וגובה ${L(h)} ס״מ. מה השטח שלו? (בסמ״ר)`, `(${a}+${b})*${h}/2`, `(${a} + ${b}) × ${h} : 2 = ${(a + b) * h / 2}`, 'שטח טרפז = (בסיס + בסיס) × גובה : 2', [2]); }, symAxesQ, solidQ] },
+    symAxesQ] },
   { id: 'word5', name: 'בעיות מילוליות', sym: '?', c: 'word', desc: 'בעיות בכמה שלבים', gens: [
     () => { const n = rnd(3, 8), p = rnd(12, 45), m = rnd(2, 4); return wordQ(`לטיול נסעו ${L(n)} אוטובוסים, ובכל אוטובוס ${L(p)} ילדים. כל ילד קיבל ${L(m)} בקבוקי מים. כמה בקבוקים חולקו?`, `${n}*${p}*${m}`, `${n} × ${p} = ${n * p} ילדים, ו־${n * p} × ${m} = ${n * p * m}`, 'קודם כמה ילדים, ואחר כך כמה בקבוקים.'); },
     () => { const p = rnd(25, 90), n = rnd(3, 6), s = n * p + rnd(10, 200); return wordQ(`לנועה ${N(s)} ₪. היא קנתה ${L(n)} משחקים, כל משחק ב־${L(p)} ₪. כמה כסף נשאר לה?`, `${s}-${n}*${p}`, `${n} × ${p} = ${n * p}, ו־${s} − ${n * p} = ${s - n * p}`, 'קודם כמה עלו כל המשחקים, ואחר כך כמה נשאר.'); },
     () => { const per = rnd(12, 30), bags = rnd(4, 12), extra = rnd(1, per - 1), tot = per * bags + extra; return wordQ(`יש ${N(tot)} סוכריות. אורזים אותן בשקיות של ${L(per)}. כמה שקיות מלאות יהיו?`, `Math.floor(${tot}/${per})`, `${tot} : ${per} = ${bags} ושארית ${extra}. יש ${bags} שקיות מלאות.`, 'מחלקים, ומה שנשאר לא ממלא שקית.'); }] },
-  { id: 'prime5', name: 'מחלקים וראשוניים', sym: '÷', c: 'num', desc: 'מחלקים, מספרים ראשוניים, מחלק משותף וכפולה משותפת', gens: [ndivQ, primeQ, primePickQ, gcdQ, lcmQ, () => divisQ([3, 6, 9])] },
   { id: 'chart5', name: 'תרשימים', sym: '▂▅▇', c: 'chart', desc: 'קריאת נתונים מתרשים', gens: [() => chartQ([2, 5, 10, 20])] }];
 
 /* ===== כיתה ו' (תוכנית 2006) ===== */
