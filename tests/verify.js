@@ -321,6 +321,37 @@ const RECOMPUTE = {
   'en-prog': d => `${enBe(d.s)} ${enIng(d.v)}`,
   'en-past': d => enPast(d.v),
   'en-comp': d => enComp(d.a, d.most),
+  'en-there': (d, q) => { const n = [...q.vis.match(/class="pic"[^>]*>(.*?)<\/div>/)[1].matchAll(/\p{Extended_Pictographic}/gu)].length;
+    return n === d.n ? (n === 1 ? 'is' : 'are') : `picture shows ${n}, data says ${d.n}`; },
+  'en-can': (d, q) => {
+    const s = q.vis.replace(/<[^>]+>/g, '').replace(/^(A|An) /, '').replace(/ ___ /, '|').replace(/\.$/, '');
+    const yes = ['fish|swim', 'bird|fly', 'dog|run', 'cat|climb trees', 'monkey|climb trees', 'frog|jump', 'horse|run fast', 'duck|swim', 'penguin|swim', 'parrot|talk', 'rabbit|jump', 'bee|fly', 'giraffe|eat leaves from tall trees'];
+    const no = ['fish|walk', 'dog|fly', 'snake|walk', 'elephant|fly', 'cow|read', 'baby|drive a car', 'penguin|fly', 'turtle|run fast', 'whale|walk', 'pig|fly', 'cat|sing a song'];
+    return yes.includes(s) ? 'can' : no.includes(s) ? "can't" : `unknown fact ${s}`; },
+  'en-where': (d, q) => {
+    // מהציור: מרכז הכדור מול הקופסה
+    const num = (tag, a) => +q.vis.match(new RegExp(`<${tag}[^>]* ${a}="([0-9]+)"`))[1];
+    const [cx, cy, r] = ['cx', 'cy', 'r'].map(a => num('circle', a)), [x, y, w, h] = ['x', 'y', 'width', 'height'].map(a => num('rect', a));
+    if (cx - r >= x && cx + r <= x + w && cy - r >= y && cy + r <= y + h) return 'in';
+    if (cx > x && cx < x + w && cy + r <= y) return 'on';
+    if (cx > x && cx < x + w && cy - r >= y + h) return 'under';
+    if (cx - r >= x + w || cx + r <= x) return 'next to';
+    return 'ball overlaps the box edge';
+  },
+  'en-poss': d => ({ i: 'my', you: 'your', he: 'his', she: 'her', we: 'our', they: 'their', dan: 'his', noa: 'her', 'my sister': 'her', 'my brother': 'his' })[d.s.toLowerCase()] || (subjKind(d.s) === 'pl' ? 'their' : undefined),
+  'en-dem': (d, q) => { const s = q.vis.replace(/<[^>]+>/g, ''), near = / here /.test(s), far = / over there /.test(s), pl = / are mine/.test(s);
+    if (near === far) return 'sentence has no here / over there';
+    return near ? (pl ? 'These' : 'This') : (pl ? 'Those' : 'That'); },
+  'en-read': (d, q) => {
+    // התשובה (בלי מילות מילוי) כתובה בקטע, והאפשרויות שונות זו מזו
+    const text = q.vis.replace(/<[^>]+>/g, '').toLowerCase();
+    if (new Set(q.opts).size !== q.opts.length) return 'duplicate options';
+    if (/^(yes|no)\b/i.test(q.ans)) return undefined;
+    const key = q.ans.toLowerCase().replace(/^(to|in|on|at|by|an?|the) /, '');
+    if (key === 'bike') return /rides his bike/.test(text) ? q.ans : 'bike not in text';
+    if (key === 'cold and rainy') return /cold/.test(text) && /raining/.test(text) ? q.ans : 'weather not in text';
+    return text.includes(key) ? q.ans : `answer "${key}" not in the text`;
+  },
   'en-opp': (d, q) => { const opp = o => require('../english.js').OPP.some(p => p.includes(d.w) && p.includes(o) && o !== d.w); const ok = q.opts.filter(opp); return ok.length === 1 ? ok[0] : `${ok.length} options are opposites` }
 };
 

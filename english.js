@@ -322,6 +322,75 @@ function oppQ() {
 }
 
 /* ===== נושאים לפי כיתה ===== */
+// there is / there are: סופרים את התמונות
+const countable = lv => words(x => x.e && ['animal', 'food', 'thing'].includes(x.cat) && !NONCOUNT.has(x.en) && !['fish', 'sun', 'moon'].includes(x.en), lv);
+function thereQ() {
+  const w = pick(countable(2)), n = Math.random() < .4 ? 1 : rnd(2, 5);
+  const thing = n === 1 ? `${/^[aeiou]/.test(w.en) ? 'an' : 'a'} ${w.en}` : `${numWord(n)} ${plural(w.en)}`, ans = n === 1 ? 'is' : 'are';
+  const sent = `There ${BLANK} ${thing} in the picture.`;
+  return Q({ prompt: `בחרו: ${EN('is')} או ${EN('are')}`, vis: stack(pic(w.e.repeat(n)), big(sent)), say: sayText(sent), opts: ['is', 'are'], ans,
+    ex: `${EN(`There ${ans} ${thing}.`)} ${n === 1 ? 'דבר אחד' : 'כמה דברים'} ← ${EN(`there ${ans}`)}.`,
+    hint: `דבר אחד ← ${EN('there is')}. שניים או יותר ← ${EN('there are')}.`, data: { k: 'en-there', n } });
+}
+// can / can't: מה בעל החיים יכול לעשות
+const CAN = [['A fish', 'swim', 1], ['A fish', 'walk', 0], ['A bird', 'fly', 1], ['A dog', 'fly', 0], ['A dog', 'run', 1], ['A cat', 'climb trees', 1],
+  ['A snake', 'walk', 0], ['An elephant', 'fly', 0], ['A monkey', 'climb trees', 1], ['A frog', 'jump', 1], ['A cow', 'read', 0], ['A baby', 'drive a car', 0],
+  ['A horse', 'run fast', 1], ['A duck', 'swim', 1], ['A penguin', 'fly', 0], ['A penguin', 'swim', 1], ['A turtle', 'run fast', 0], ['A parrot', 'talk', 1],
+  ['A rabbit', 'jump', 1], ['A whale', 'walk', 0], ['A bee', 'fly', 1], ['A pig', 'fly', 0], ['A giraffe', 'eat leaves from tall trees', 1], ['A cat', 'sing a song', 0]];
+function canQ() {
+  const i = rnd(0, CAN.length - 1), [s, v, yes] = CAN[i], ans = yes ? 'can' : "can't", sent = `${s} ${BLANK} ${v}.`;
+  return Q({ prompt: `בחרו: ${EN('can')} או ${EN("can't")}`, vis: big(sent), say: sayText(sent), opts: ['can', "can't"], ans,
+    ex: `${EN(`${s} ${ans} ${v}.`)} ${EN('can')} = יכול, ${EN("can't")} = לא יכול.`, hint: `${EN('can')} = יכול. ${EN("can't")} = לא יכול. דמיינו את בעל החיים: הוא באמת יכול?`, data: { k: 'en-can', i } });
+}
+// in / on / under / next to: כדור וקופסה בציור. הקופסה: x 70–150, y 50–110
+const WHERE = { in: [110, 85], on: [110, 34], under: [110, 128], 'next to': [170, 94] };
+const WHERE_HE = { in: 'בתוך', on: 'על', under: 'מתחת ל־', 'next to': 'ליד' };
+function whereQ() {
+  const ans = pick(Object.keys(WHERE)), [cx, cy] = WHERE[ans];
+  const svg = `<svg viewBox="0 0 220 150" width="220" height="150" role="img" aria-label="ball and box"><circle cx="${cx}" cy="${cy}" r="15" style="fill:var(--tc);stroke:var(--ink);stroke-width:3"/>`
+    + `<rect class="shape" x="70" y="50" width="80" height="60" style="fill:${ans === 'in' ? 'none' : 'var(--shape-fill)'}"/></svg>`;
+  return Q({ prompt: 'איפה הכדור? השלימו את המשפט', vis: stack(svg, big(`The ball is ${BLANK} the box.`)), opts: Object.keys(WHERE), ans,
+    ex: `${EN(`The ball is ${ans} the box.`)} ${EN(ans)} = ${WHERE_HE[ans]}.`, hint: `${EN('in')} = בתוך, ${EN('on')} = על, ${EN('under')} = מתחת, ${EN('next to')} = ליד.`, data: { k: 'en-where' } });
+}
+// my / your / his / her / our / their
+const POSS = [['I', 'my'], ['You', 'your'], ['He', 'his'], ['She', 'her'], ['We', 'our'], ['They', 'their'], ['Dan', 'his'], ['Noa', 'her'],
+  ['Dan and Maya', 'their'], ['My sister', 'her'], ['My brother', 'his']];
+function possQ() {
+  const [s, ans] = pick(POSS), w = pick(countable(2)), adj = pick(['big', 'small', 'new', 'old', 'nice']);
+  const has = ['He', 'She', 'Dan', 'Noa', 'My sister', 'My brother'].includes(s) ? 'has' : 'have';
+  const sent = `${s} ${has} ${/^[aeiou]/.test(w.en) ? 'an' : 'a'} ${w.en}. ${BLANK} ${w.en} is ${adj}.`;
+  return Q({ prompt: 'של מי? השלימו', vis: stack(pic(w.e), big(sent)), say: sayText(sent), opts: withOpts(ans, POSS.map(p => p[1])), ans,
+    ex: `${EN(`${s} → ${ans}`)}: ${EN(`${ans[0].toUpperCase() + ans.slice(1)} ${w.en} is ${adj}.`)}`,
+    hint: `${EN('I → my, you → your, he → his, she → her, we → our, they → their')}`, data: { k: 'en-poss', s } });
+}
+// this / that / these / those
+function demQ() {
+  const w = pick(countable(2)), near = Math.random() < .5, pl = Math.random() < .5, ans = near ? (pl ? 'These' : 'This') : (pl ? 'Those' : 'That');
+  const sent = `${BLANK} ${pl ? plural(w.en) : w.en} ${near ? 'here' : 'over there'} ${pl ? 'are' : 'is'} mine.`;
+  return Q({ prompt: 'השלימו את המשפט', vis: stack(pic(w.e.repeat(pl ? 3 : 1)), big(sent)), say: sayText(sent), opts: ['This', 'That', 'These', 'Those'], ans,
+    ex: `${EN(sent.replace(BLANK, ans))} ${near ? 'קרוב' : 'רחוק'} ו${pl ? 'הרבה' : 'אחד'} ← ${EN(ans)}.`,
+    hint: `קרוב: ${EN('this')} (אחד), ${EN('these')} (הרבה). רחוק: ${EN('that')} (אחד), ${EN('those')} (הרבה).`, data: { k: 'en-dem' } });
+}
+// הבנת הנקרא: קטע קצר ושאלות
+const READ = [
+  ['Dan has a dog. The dog is brown and small. Its name is Max. Every morning Dan and Max go to the park.',
+    [['What is the dog\'s name?', 'Max', ['Dan', 'Rex', 'Tom']], ['What color is the dog?', 'brown', ['black', 'white', 'gray']], ['Where do they go every morning?', 'to the park', ['to school', 'to the beach', 'to the zoo']]]],
+  ['Noa is ten years old. She lives in Haifa with her mother and two brothers. She likes to swim and to read books.',
+    [['How old is Noa?', 'ten', ['nine', 'eleven', 'twelve']], ['Where does Noa live?', 'in Haifa', ['in Eilat', 'in a big school', 'in the park']], ['How many brothers does Noa have?', 'two', ['one', 'three', 'four']]]],
+  ['It is a cold winter day. It is raining. Tom wears a coat and boots. He takes an umbrella and walks to school.',
+    [['What is the weather?', 'cold and rainy', ['hot and sunny', 'warm', 'windy and hot']], ['What does Tom take?', 'an umbrella', ['a ball', 'a book', 'a hat']], ['Where does Tom walk?', 'to school', ['to the beach', 'to the park', 'home']]]],
+  ['Maya has a birthday party on Friday. Her friends come to her house. They eat cake and play games. Maya gets a red bike.',
+    [['When is the party?', 'on Friday', ['on Monday', 'on Sunday', 'on Tuesday']], ['What do they eat?', 'cake', ['pizza', 'salad', 'eggs']], ['What does Maya get?', 'a red bike', ['a blue bike', 'a red ball', 'a cat']]]],
+  ['The zoo is big. There are lions, monkeys and elephants. The monkeys eat bananas. The elephant is very tall and gray.',
+    [['What do the monkeys eat?', 'bananas', ['apples', 'carrots', 'cake']], ['What color is the elephant?', 'gray', ['brown', 'white', 'black']], ['Is the zoo small?', 'No, it is big.', ['Yes, it is small.', 'Yes, it is.', 'No, it is small.']]]],
+  ['Ben gets up at seven. He eats eggs and drinks milk. Then he rides his bike to school. School starts at eight.',
+    [['When does Ben get up?', 'at seven', ['at eight', 'at six', 'at nine']], ['What does Ben drink?', 'milk', ['juice', 'tea', 'water']], ['How does Ben go to school?', 'by bike', ['by bus', 'by car', 'on foot']]]]];
+function readQ() {
+  const p = rnd(0, READ.length - 1), qi = rnd(0, 2), [text, qs] = READ[p], [qq, ans, wrong] = qs[qi];
+  return Q({ prompt: `קראו וענו: ${EN(qq)}`, vis: big(text), say: text, opts: [ans, ...wrong], ans,
+    ex: `${EN(qq)} ← ${EN(ans)}.`, hint: 'חפשו בקטע את המילים מהשאלה, והתשובה תהיה קרוב אליהן.', data: { k: 'en-read', p, qi } });
+}
+
 const EARLY = [
   { id: 'e-abc1', name: 'אותיות', sym: 'Aa', c: 'num', desc: 'אות גדולה ואות קטנה', gens: [() => caseQ(true), () => caseQ(false)] },
   { id: 'e-hear', name: 'שומעים ובוחרים', sym: '🔊', c: 'geo', desc: 'מקשיבים למילה ובוחרים תמונה', gens: [() => wordToPicQ(1)] },
@@ -335,17 +404,22 @@ const G4 = [
   { id: 'e-spell', name: 'איות', sym: 'c_t', c: 'ops', desc: 'משלימים את האות החסרה', gens: [() => spellQ(2)] },
   { id: 'e-tr4', name: 'אוצר מילים', sym: '⇄', c: 'geo', desc: 'תרגום מאנגלית לעברית ובחזרה', gens: [() => translateQ(1, 2), () => picToWordQ(2)] },
   { id: 'e-plural', name: 'יחיד ורבים', sym: 's', c: 'div', desc: `${EN('cat → cats')}, ${EN('box → boxes')}, ${EN('mouse → mice')}`, gens: [pluralQ] },
-  { id: 'e-gram4', name: EN('a / an, am / is / are'), sym: 'is', c: 'eq', desc: 'מילים קטנות שבונות משפט', gens: [aanQ, beQ] }];
+  { id: 'e-gram4', name: EN('a / an, am / is / are'), sym: 'is', c: 'eq', desc: 'מילים קטנות שבונות משפט', gens: [aanQ, beQ] },
+  { id: 'e-there', name: EN('there is / are, can'), sym: 'can', c: 'meas', desc: `${EN('There are three cats')}, ${EN("A fish can't walk")}`, gens: [thereQ, canQ] },
+  { id: 'e-where', name: 'איפה?', sym: 'in', c: 'word', desc: EN('in, on, under, next to'), gens: [whereQ] }];
 const G5 = [
   { id: 'e-tr5', name: 'אוצר מילים', sym: '⇄', c: 'geo', desc: 'פעלים, תארים, משפחה ועוד', gens: [() => translateQ(2, 3)] },
   { id: 'e-opp', name: 'הפכים', sym: '↔', c: 'word', desc: `${EN('big ↔ small')}, ${EN('hot ↔ cold')}`, gens: [oppQ] },
   { id: 'e-pres', name: EN('Present Simple'), sym: 's', c: 'div', desc: EN('she plays, he has, they go'), gens: [presentQ, beQ] },
+  { id: 'e-poss', name: EN('my / his / her, this / that'), sym: 'my', c: 'ops', desc: `${EN('her bag')}, ${EN('these books')}`, gens: [possQ, demQ] },
+  { id: 'e-read5', name: 'הבנת הנקרא', sym: '📖', c: 'num', desc: 'קוראים קטע קצר ועונים', gens: [readQ] },
   { id: 'e-cal', name: 'ימים, חודשים ומספרים', sym: '📅', c: 'meas', desc: 'סדר הימים והחודשים, מספרים עד 100', gens: [orderQ, () => numQ(21, 99, 'word'), () => numQ(21, 99, 'digit')] }];
 const G6 = [
   { id: 'e-tr6', name: 'אוצר מילים', sym: '⇄', c: 'geo', desc: 'פעלים ותארים', gens: [() => translateQ(3, 3)] },
   { id: 'e-past', name: EN('Past Simple'), sym: 'ed', c: 'div', desc: EN('played, went, ate'), gens: [pastQ] },
   { id: 'e-prog', name: EN('Present Progressive'), sym: 'ing', c: 'ops', desc: EN('Look! She is dancing'), gens: [progQ, presentQ] },
   { id: 'e-comp', name: 'השוואה', sym: 'er', c: 'eq', desc: EN('bigger, the biggest, more beautiful'), gens: [compQ] },
+  { id: 'e-read6', name: 'הבנת הנקרא ודקדוק', sym: '📖', c: 'num', desc: `קטעי קריאה, ${EN('my / his')}, ${EN('this / those')}`, gens: [readQ, possQ, demQ] },
   { id: 'e-wh', name: 'מילות שאלה', sym: '?', c: 'word', desc: EN('What, Where, When, Who, Why, How'), gens: [whQ] }];
 
 const GRADES = {
@@ -365,7 +439,7 @@ function makeRound(grade, topicIds, n = 10) {
   return out;
 }
 
-const API = { GRADES, NOTE, generate, makeRound, WORDS: W, OPP, WH };
+const API = { GRADES, NOTE, generate, makeRound, WORDS: W, OPP, WH, CAN, READ };
 root.ENGLISH = API;
 if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);
