@@ -408,7 +408,6 @@ function haveGotQ() {
 }
 
 const EARLY = [
-  { id: 'e-abc1', name: 'אותיות', sym: 'Aa', c: 'num', desc: 'אות גדולה ואות קטנה', gens: [() => caseQ(true), () => caseQ(false)] },
   { id: 'e-hear', name: 'שומעים ובוחרים', sym: '🔊', c: 'geo', desc: 'מקשיבים למילה ובוחרים תמונה', gens: [() => wordToPicQ(1)] },
   { id: 'e-num1', name: 'מספרים עד 10', sym: '123', c: 'eq', desc: 'שומעים מספר באנגלית ובוחרים', gens: [() => numQ(1, 10, 'digit')] }];
 const G3 = [

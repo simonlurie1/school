@@ -376,7 +376,7 @@ const G5 = [
   { id: 'h-smi', name: 'סמיכות', sym: 'ת', c: 'eq', desc: 'עוגה של שוקולד ← עוגת שוקולד', gens: [smiQ] },
   { id: 'h-prep', name: 'מילות יחס', sym: 'לי', c: 'ops', desc: 'ל + הוא = לו, של + אנחנו = שלנו', gens: [prepQ] },
   { id: 'h-sent', name: 'נושא ונשוא', sym: 'מי?', c: 'geo', desc: 'מי עשה ומה עשה במשפט', gens: [sentQ] },
-  { id: 'h-read5', name: 'הבנת הנקרא', sym: '📖', c: 'num', desc: 'קטעים קצרים, גם שאלות של הסקה', gens: [() => readQ(2), () => readQ(1)] },
+  { id: 'h-read5', name: 'הבנת הנקרא', sym: '📖', c: 'num', desc: 'קטעים קצרים, גם שאלות של הסקה', gens: [() => readQ(2)] },
   { id: 'h-root5', name: 'שורש', sym: '√', c: 'div', desc: 'משפחות מילים', gens: [rootQ] },
   { id: 'h-syn5', name: 'אוצר מילים', sym: '=', c: 'word', desc: 'מילים נרדפות והפכים', gens: [() => pairQ(SYN, 'syn'), () => pairQ(OPP, 'opp')] }];
 const G6 = [

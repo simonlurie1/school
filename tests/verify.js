@@ -477,6 +477,24 @@ function gradeProblems(subj, g, q) {
   if (g === 5 && (text.match(/(\d+)%/g) || []).some(p => ![10, 25, 50].includes(parseInt(p)))) out.push('grade 5 percent: 10%, 25%, 50% only');
   return out;
 }
+/* עברית ואנגלית: הכיתה הראשונה שבה הנושא מופיע בתוכנית.
+ * עברית: "חינוך לשוני" (תשס"ג), ציוני הדרך לסוף כיתות ב', ד', ו' (נושא בעמודת ד' = מכיתה ג', בעמודת ו' = מכיתה ה').
+ * אנגלית: English Curriculum 2020 for Elementary School. כיתות א'-ב' מחוץ לתוכנית: רק האזנה. */
+const FROM_GRADE = {
+  'he-tense': 3, 'he-person': 3, 'he-root': 3, 'he-punct': 3, 'he-pos': 3, 'he-posfind': 3,
+  'he-smi': 5, 'he-prep': 5, 'he-conn': 5, 'he-sent': 5, 'he-bin': 5,
+  'en-case': 3, 'en-order': 3, 'en-first': 3, 'en-pic': 3, 'en-rhyme': 3, 'en-spell': 3, 'en-tr': 3, 'en-opp': 3, 'en-seq': 3,
+  'en-there': 4, 'en-can': 4, 'en-where': 4, 'en-be': 4, 'en-aan': 4, 'en-plural': 4, 'en-pres': 4, 'en-read': 4, 'en-wh': 4,
+  'en-poss': 5, 'en-dem': 5, 'en-havegot': 5, 'en-prog': 5, 'en-past': 4, 'en-comp': 6,
+};
+function langGradeProblems(subj, g, q) {
+  if (subj === 'math' || !q.data) return [];
+  const out = [], k = q.data.k;
+  if (FROM_GRADE[k] && g < FROM_GRADE[k]) out.push(`${k} is taught from grade ${FROM_GRADE[k]}`);
+  if (subj === 'english' && g <= 2 && !(k === 'en-wpic' || (k === 'en-num' && /שמעתם/.test(q.prompt)))) out.push('grades 1-2 English: listening only');
+  if (k === 'he-read' && q.data.lv !== (g <= 3 ? 1 : 2)) out.push(`reading level ${q.data.lv} in grade ${g}`);
+  return out;
+}
 
 /* ---------- הרצה ---------- */
 const fails = new Map();   // מפתח: כיתה/נושא/בעיה → { count, sample }
@@ -499,7 +517,7 @@ for (const [subj, M] of ENGINES) {
         const ks = kinds.get(k) || { total: 0, recomputed: 0 }; ks.total++;
         for (const p of generalProblems(q)) note(`${subj} ${g}/${t.id}/${k}: ${p.replace(/[\d.]+/g, '#')}`, q);
         for (const p of speechProblems(q)) note(`${subj} ${g}/${t.id}/${k}: ${p}`, q);
-        for (const p of gradeProblems(subj, +g, q)) note(`${subj} ${g}/${t.id}/${k}: ${p}`, q);
+        for (const p of [...gradeProblems(subj, +g, q), ...langGradeProblems(subj, +g, q)]) note(`${subj} ${g}/${t.id}/${k}: ${p}`, q);
         const r = recomputeProblem(q);
         if (q.data && RECOMPUTE[q.data.k]) ks.recomputed++;
         if (r) note(`${subj} ${g}/${t.id}/${k}: ${r.startsWith('checker') ? r.replace(/[\d.]+/g, '#') : 'wrong answer'}`, q);
