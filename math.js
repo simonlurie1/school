@@ -17,6 +17,7 @@ const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { c
 const gcd = (a, b) => b ? gcd(b, a % b) : Math.abs(a);
 const pad2 = n => String(n).padStart(2, '0');
 const tm = (h, m) => `${h}:${pad2(m)}`;
+const h12 = h => `${h - 12} ${h <= 17 ? 'אחר הצהריים' : h <= 20 ? 'בערב' : 'בלילה'}`; // 13–23 בשעון של 12 שעות, כמו שאומרים
 const r2 = x => Math.round(x * 1000) / 1000;
 const fmt = n => typeof n === 'number' && Math.abs(n) >= 10000 && Number.isInteger(n) ? n.toLocaleString('en-US') : String(n);
 const L = s => `<span class="ltr">${s}</span>`;
@@ -163,6 +164,11 @@ function cmpQ(l, r, prompt, hint, ex) {
   const ans = a > b ? '>' : a < b ? '<' : '=';
   return Q({ t: 'choice', prompt: prompt || 'איזה סימן מתאים?', vis: eq(`${E(l)} ${BOX} ${E(r)}`), opts: ['<', '=', '>'], ans, ex: ex || `${E(l)} = ${r2(a)}, ${E(r)} = ${r2(b)}`, hint: hint || 'הפה של התנין פתוח לכיוון המספר הגדול.', data: { k: 'cmp', l, r } });
 }
+/* חיסור דו־ספרתי: a − b בתחום [lo, hi], עם פריטה בחלק share מהשאלות (בכיתה ב' מלמדים קודם בלי פריטה) */
+function subPair(lo, hi, share) {
+  const borrow = Math.random() < share;
+  for (;;) { const a = rnd(lo, hi), b = rnd(11, a - 5); if (b >= 10 && ((a % 10) < (b % 10)) === borrow) return [a, b]; }
+}
 function vertQ(a, b, op) {
   return Q({ t: 'num', prompt: 'פתרו במאונך:', vis: '', vg: [a, b, op], ans: op === '+' ? a + b : a - b, ex: `${a} ${op} ${b} = ${op === '+' ? a + b : a - b}`,
     hint: op === '+' ? 'מתחילים מהאחדות (הכי ימינה). אם יוצא 10 או יותר, כותבים את האחדות למטה, ואת ה־1 במשבצת הקטנה של העמודה הבאה.' : 'מתחילים מהאחדות. אם הספרה למעלה קטנה מהספרה למטה, פורטים: לוקחים 1 מהעמודה שמשמאל.',
@@ -192,9 +198,9 @@ function clockQ(minStep) {
     ex: m === 0 ? `המחוג הקצר מצביע על ${h} והמחוג הארוך על 12, ולכן השעה ${ans}.` : `המחוג הקצר (שעות) ליד ${h}, המחוג הארוך (דקות) על ${m / 5}: ${m} דקות. השעה ${ans}.`,
     hint: 'המחוג הקצר מראה שעות. המחוג הארוך (הצבעוני) מראה דקות: כל מספר על השעון שווה 5 דקות.', data: { k: 'clock', h, m } });
 }
-function durQ(unit) { // unit: 'hr1' (כיתה א': שעות שלמות עד 12) | 'hr' | 'min'
-  if (unit === 'hr' || unit === 'hr1') {
-    const g1 = unit === 'hr1', d = rnd(1, g1 ? 3 : 4), h = g1 ? rnd(7, 12 - d) : rnd(7, 16), m = g1 ? 0 : pick([0, 0, 30]), eh = h + d;
+function durQ(unit) { // unit: 'hr1' (כיתה א': שעות שלמות עד 12) | 'hr2' (כיתה ב': גם חצאי שעות, עד 12) | 'hr' | 'min'
+  if (unit === 'hr' || unit === 'hr1' || unit === 'hr2') {
+    const g1 = unit === 'hr1', early = unit !== 'hr', d = rnd(1, g1 ? 3 : 4), h = early ? rnd(7, 12 - d) : rnd(7, 16), m = g1 ? 0 : pick([0, 0, 30]), eh = h + d;
     const P = pick([`הטיול התחיל ב־${L(tm(h, m))} ונגמר ב־${L(tm(eh, m))}. כמה שעות נמשך הטיול?`, `החוג מתחיל ב־${L(tm(h, m))} ונגמר ב־${L(tm(eh, m))}. כמה שעות נמשך החוג?`]);
     return Q({ t: 'num', prompt: P, vis: '', ans: d, ex: `מ־${tm(h, m)} עד ${tm(eh, m)} עוברות ${d} שעות.`, hint: 'סופרים כמה פעמים עוברת שעה שלמה מההתחלה עד הסוף.', data: { k: 'dur', s: tm(h, m), e: tm(eh, m), unit: 'hr' } });
   }
@@ -352,7 +358,8 @@ function fracSvg(n, d, kind, scatter) {
 }
 function fracShadeQ(ds, unit) { // unit: רק שבר יסודי (מונה 1), כמו בכיתה ג'
   const d = pick(ds); let n; do { n = unit ? 1 : rnd(1, d - 1); } while (gcd(n, d) !== 1);
-  const c = fracChoice([n, d], [[d - n, d], [n, d + 1], [n, d - 1], [n + 1, d], [1, d + 1], [n, 2 * d], [d - n, d + 1]].filter(([a, b]) => a < b));
+  const c = unit ? fracChoice([1, d], shuffle(ds.filter(x => x !== d)).map(x => [1, x])) // כיתה ג': גם המסיחים שברים יסודיים
+    : fracChoice([n, d], [[d - n, d], [n, d + 1], [n, d - 1], [n + 1, d], [1, d + 1], [n, 2 * d], [d - n, d + 1]].filter(([a, b]) => a < b));
   return Q({ t: 'choice', prompt: 'איזה חלק מהצורה צבוע?', vis: fracSvg(n, d, pick(['bar', 'circle']), d > 2 && Math.random() < .4), opts: c.opts, ans: c.ans,
     ex: `הצורה מחולקת ל־${d} חלקים שווים, ו־${n} מהם צבועים: ${c.ans}`, hint: 'ספרו לכמה חלקים שווים הצורה מחולקת (המספר למטה), וכמה מהם צבועים (המספר למעלה).', data: { k: 'fshade' } });
 }
@@ -451,7 +458,8 @@ function digitPosQ(len) {
 }
 function composeQ(len) {
   const parts = [...Array(len)].map((_, i) => i === len - 1 ? rnd(1, 9) : rnd(0, 9)).reverse(); // parts[0]=אחדות
-  const txt = parts.map((d, i) => [d, i]).filter(([d]) => d > 0).reverse().map(([d, i]) => `${L(d)} ${HEB_POS[i]}`);
+  const ONE = ['אחד', 'עשרת אחת', 'מאה אחת', 'אלף אחד', 'רבבה אחת']; // לא "1 מאות"
+  const txt = parts.map((d, i) => [d, i]).filter(([d]) => d > 0).reverse().map(([d, i]) => d === 1 ? ONE[i] : `${L(d)} ${HEB_POS[i]}`);
   const e = parts.map((d, i) => `${d}*${10 ** i}`).filter((_, i) => parts[i] > 0).join('+');
   const prompt = `איזה מספר זה? ${txt.length > 1 ? txt.slice(0, -1).join(', ') + ' ו־' + txt[txt.length - 1] : txt[0]}`;
   return Q({ t: 'num', prompt, vis: '', ans: parts.reduce((a, d, i) => a + d * 10 ** i, 0), ex: `${e.replace(/\*/g, '×').replace(/\+/g, ' + ')} = ${parts.reduce((a, d, i) => a + d * 10 ** i, 0)}`, hint: 'כותבים כל ספרה במקום שלה. מקום שאין בו כלום מקבל 0.', data: { k: 'expr', e } });
@@ -491,8 +499,8 @@ function tabSvg(rows, cols, shown, q) {
 }
 /* השלמת לוח הכפל בשאלה אחת (במבחן לדוגמה ובמבחן מותאם; בתרגול הנושא עצמו יש לוח מלא, tableBoard).
  * maxR: השורה הגדולה ביותר. heads: גם שאלות של כותרת חסרה */
-function tabQ(maxR, heads) {
-  const R = 3, C = rnd(4, 5), r0 = rnd(1, maxR - R + 1), c0 = rnd(1, 11 - C);
+function tabQ(maxR, heads, maxC = 10) {
+  const R = 3, C = rnd(4, Math.min(5, maxC)), r0 = rnd(1, maxR - R + 1), c0 = rnd(1, maxC + 1 - C);
   const rows = [...Array(R)].map((_, i) => r0 + i), cols = [...Array(C)].map((_, i) => c0 + i);
   const mode = heads && Math.random() < .3 ? pick(['row', 'col']) : 'cell';
   const shown = new Set(), cells = [];
@@ -513,12 +521,16 @@ function tabQ(maxR, heads) {
     hint: `בוחרים משבצת ${mode === 'row' ? 'בשורה' : 'בעמודה'} של הסימן, ושואלים: איזה מספר כפול ${L(other)} שווה ${L(h * other)}?`, data: { k: 'mtab', ask: mode, h, cells } });
 }
 
-/* לוח כפל מלא 10×10 להשלמה: אילו משבצות ריקות. בכיתה ב' 40 ריקות, מכיתה ג' 60 */
+/* לוח כפל מלא להשלמה: אילו משבצות ריקות.
+ * כיתה ב': לוח 6×6 עם 16 ריקות (בתוכנית: "ישלטו כל התלמידים תחילה בכפל עד 6×6"). מכיתה ג': 10×10 עם 60 ריקות */
 function tableBoard(grade) {
-  const all = []; for (let r = 1; r <= 10; r++) for (let c = 1; c <= 10; c++) all.push([r, c]);
-  const blanks = shuffle(all).slice(0, grade <= 2 ? 40 : 60).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-  return { n: 10, blanks };
+  const n = grade <= 2 ? 6 : 10, all = []; for (let r = 1; r <= n; r++) for (let c = 1; c <= n; c++) all.push([r, c]);
+  const blanks = shuffle(all).slice(0, grade <= 2 ? 16 : 60).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  return { n, blanks };
 }
+
+/* צלעות של משולש שיכול להתקיים: כל צלע קטנה מסכום שתי האחרות */
+function triSides(lo, hi) { for (;;) { const s = [rnd(lo, hi), rnd(lo, hi), rnd(lo, hi)], m = Math.max(...s); if (2 * m < s[0] + s[1] + s[2]) return s; } }
 
 /* שטח והיקף של מלבן על משבצות (שטח בסמ״ר: מכיתה ד') */
 const gridAreaQ = () => { const w = rnd(2, 9), h = rnd(2, 6); return Q({ t: 'num', prompt: 'כל משבצת היא 1 סמ״ר. מה השטח של המלבן הצבוע? (בסמ״ר)', vis: gridSvg(w, h), ans: w * h, ex: `${w} × ${h} = ${w * h}`, hint: 'סופרים כמה משבצות בשורה, וכמה שורות, וכופלים.', data: { k: 'grid', ask: 'area' } }); };
@@ -562,26 +574,26 @@ const G2 = [
     () => retry(() => { const d = pick([2, 5, 10, 20, 50, 100]), down = Math.random() < .3; let s = rnd(0, 20) * (d >= 20 ? d / 2 : 1) + (d >= 10 ? 0 : rnd(0, 9)); if (down) s += d * 5; return seqQ(s, down ? -d : d, 6, 0, 1000); })] },
   { id: 'ops2', name: 'חיבור וחיסור עד 100', sym: '+−', c: 'ops', desc: 'במאוזן ובמאונך, מספר חסר', gens: [
     () => { const a = rnd(11, 80), b = rnd(10, 99 - a); return exprQ(`${a}+${b}`, 'כמה זה?', 'מחברים עשרות עם עשרות, ואחדות עם אחדות.'); },
-    () => { const a = rnd(30, 99), b = rnd(11, a - 5); return exprQ(`${a}-${b}`, 'כמה זה?', 'מחסרים קודם את העשרות ואחר כך את האחדות.'); },
+    () => { const [a, b] = subPair(30, 99, .3); return exprQ(`${a}-${b}`, 'כמה זה?', 'מחסרים קודם את העשרות ואחר כך את האחדות.'); },
     () => { let a = rnd(15, 75), b = rnd(12, 99 - a); if ((a % 10) + (b % 10) < 10) b = Math.min(99 - a, b + 9 - (b % 10)); return vertQ(a, b, '+'); },
-    () => { const a = rnd(40, 99); let b = rnd(12, a - 10); if ((b % 10) <= (a % 10) && (a % 10) < 9) b = b - (b % 10) + (a % 10) + 1; if (b >= a) b = a - 11; return vertQ(a, b, '−'); },
+    () => { const [a, b] = subPair(40, 99, .5); return vertQ(a, b, '−'); },
     () => { const x = rnd(11, 60), b = rnd(10, 99 - x); return missQ(`${b}+?`, `${b + x}`, null, `אפשר לחסר: ${L(`${b + x} − ${b}`)}`, x); }] },
   { id: 'mul2', name: 'כפל וחילוק', sym: '×:', c: 'eq', desc: 'עובדות הכפל של 2, 3, 4, 5 ו־10', gens: [
     () => { const a = pick([2, 3, 4, 5, 10]), b = rnd(1, 10); return exprQ(Math.random() < .5 ? `${a}*${b}` : `${b}*${a}`, 'כמה זה?', `${L(`${a} × ${b}`)} זה ${b} קבוצות של ${a}. אפשר לספור בקפיצות.`); },
     () => { const a = pick([2, 3, 4, 5, 10]), q = rnd(1, 10); return exprQ(`${a * q}/${a}`, 'כמה זה?', `איזה מספר כפול ${L(a)} שווה ${L(a * q)}?`); },
     () => { const a = pick([2, 3, 4, 5, 10]), x = rnd(1, 10); return missQ(`${a}*?`, `${a * x}`, null, `כמה פעמים ${L(a)} נכנס ב־${L(a * x)}?`, x); },
     () => { const l = rnd(2, 5), p = pick([2, 3, 4, 5]); return wordQ(`בתיבה יש ${L(l)} שכבות של קוביות. בכל שכבה יש ${L(p)} קוביות. כמה קוביות יש בתיבה?`, `${l}*${p}`, `${l} × ${p} = ${l * p}`, 'מספר השכבות כפול מספר הקוביות בכל שכבה.'); }] },
-  { id: 'mtab', name: 'השלמת לוח הכפל', sym: '▦×', c: 'num', desc: 'לוח כפל מלא 10×10, משלימים את המשבצות הריקות', gens: [() => tabQ(5, false)] },
+  { id: 'mtab', name: 'השלמת לוח הכפל', sym: '▦×', c: 'num', desc: 'לוח כפל 6×6, משלימים את המשבצות הריקות', gens: [() => tabQ(6, false, 6)] },
   { id: 'word2', name: 'בעיות מילוליות וכסף', sym: '₪', c: 'word', desc: 'השוואה, קנייה, עודף, מטבעות', gens: [
-    () => { const a = rnd(30, 90), b = rnd(10, a - 5), k1 = pick(KIDS), k2 = pick(KIDS.filter(x => x !== k1)); return wordQ(`ל${k1} יש ${L(a)} מדבקות ול${k2} יש ${L(b)}. בכמה מדבקות יותר יש ל${k1}?`, `${a}-${b}`, `${a} − ${b} = ${a - b}`, '"בכמה יותר" זה חיסור של הקטן מהגדול.', [], [a, b]); },
+    () => { const [a, b] = subPair(30, 90, .3), k1 = pick(KIDS), k2 = pick(KIDS.filter(x => x !== k1)); return wordQ(`ל${k1} יש ${L(a)} מדבקות ול${k2} יש ${L(b)}. בכמה מדבקות יותר יש ל${k1}?`, `${a}-${b}`, `${a} − ${b} = ${a - b}`, '"בכמה יותר" זה חיסור של הקטן מהגדול.', [], [a, b]); },
     () => { const a = rnd(10, 40), b = rnd(10, 30), c = rnd(5, 99 - a - b); return wordQ(`ביום ראשון נקטפו ${L(a)} תפוזים, ביום שני ${L(b)}, וביום שלישי ${L(c)}. כמה תפוזים נקטפו בסך הכול?`, `${a}+${b}+${c}`, `${a} + ${b} + ${c} = ${a + b + c}`, 'מחברים את שלושת הימים.'); },
-    () => { const p = rnd(12, 45), bill = p < 20 ? 20 : p < 50 ? 50 : 100; return wordQ(`ספר עולה ${L(p)} ₪. שילמו בשטר של ${L(bill)} ₪. כמה עודף מקבלים?`, `${bill}-${p}`, `${bill} − ${p} = ${bill - p}`, 'עודף = כמה ששילמנו פחות כמה שעלה.', [], [bill, p]); },
+    () => { const p = Math.random() < .5 ? rnd(2, 4) * 10 : rnd(12, 45), bill = p < 20 ? 20 : p < 50 ? 50 : 100; return wordQ(`ספר עולה ${L(p)} ₪. שילמו בשטר של ${L(bill)} ₪. כמה עודף מקבלים?`, `${bill}-${p}`, `${bill} − ${p} = ${bill - p}`, 'עודף = כמה ששילמנו פחות כמה שעלה.', [], [bill, p]); },
     () => { const list = shuffle([1000, 500, 200, 200, 100, 100, 1000, 500]).slice(0, rnd(3, 5)).sort((a, b) => b - a), tot = list.reduce((a, b) => a + b, 0) / 100; return Q({ t: 'num', prompt: 'כמה שקלים יש כאן בסך הכול?', vis: coinsSvg(list), ans: tot, ex: list.map(x => x / 100).join(' + ') + ` = ${tot}`, hint: 'מתחילים מהמטבע הגדול ומוסיפים.', data: { k: 'coins', list } }); }] },
   { id: 'geo2', name: 'צורות וגופים', sym: '△', c: 'geo', desc: 'זווית ישרה, גופים: פאות, מקצועות וקודקודים', gens: [rightAngleQ, () => solidQ(['קובייה', 'תיבה', 'פירמידה מרובעת', 'פירמידה משולשת'])] },
   { id: 'meas2', name: 'אורך, היקף ושעון', sym: '⌚', c: 'meas', desc: 'סרגל, היקף, חצאי שעות', gens: [
     () => rulerQ(true),
-    () => { const n = pick([3, 4]), s = [...Array(n)].map(() => rnd(2, 12)), nm = n === 3 ? 'משולש' : 'מרובע'; return wordQ(`ל${nm} צלעות באורך ${s.map(L).join(', ')} ס״מ. מה ההיקף שלו? (בס״מ)`, s.join('+'), `${s.join(' + ')} = ${s.reduce((a, b) => a + b)}`, 'היקף = סכום אורכי כל הצלעות.'); },
-    () => clockQ(30), () => durQ('hr')] },
+    () => { const n = pick([3, 4]), s = n === 3 ? triSides(2, 12) : [...Array(n)].map(() => rnd(2, 12)), nm = n === 3 ? 'משולש' : 'מרובע'; return wordQ(`ל${nm} צלעות באורך ${s.map(L).join(', ')} ס״מ. מה ההיקף שלו? (בס״מ)`, s.join('+'), `${s.join(' + ')} = ${s.reduce((a, b) => a + b)}`, 'היקף = סכום אורכי כל הצלעות.'); },
+    () => clockQ(30), () => durQ('hr2')] },
   { id: 'chart2', name: 'תרשימים', sym: '▂▅▇', c: 'chart', desc: 'דיאגרמת עמודות', gens: [() => chartQ([1, 2, 5])] }];
 
 /* ===== כיתה ג' (תוכנית חדשה) ===== */
@@ -618,12 +630,12 @@ const G3 = [
   { id: 'area3', name: 'היקף', sym: '▦', c: 'chart', desc: 'היקף של מצולע ושל מלבן על דף משבצות', gens: [
     gridPerimQ,
     () => { const n = pick([3, 4, 5, 6]), a = rnd(2, 12), nm = { 3: 'משולש שווה־צלעות', 4: 'ריבוע', 5: 'מחומש משוכלל', 6: 'משושה משוכלל' }[n]; return wordQ(`ל${nm} צלע באורך ${L(a)} ס״מ. מה ההיקף שלו? (בס״מ)`, `${n}*${a}`, `${n} × ${a} = ${n * a}`, `כל ${L(n)} הצלעות שוות.`, [n]); },
-    () => { const n = pick([3, 4, 5]), sd = [...Array(n)].map(() => rnd(3, 20)), nm = { 3: 'משולש', 4: 'מרובע', 5: 'מחומש' }[n]; return wordQ(`ל${nm} צלעות באורך ${sd.map(L).join(', ')} ס״מ. מה ההיקף שלו? (בס״מ)`, sd.join('+'), `${sd.join(' + ')} = ${sd.reduce((a, b) => a + b)}`, 'היקף = סכום אורכי כל הצלעות.'); }] },
+    () => { const n = pick([3, 4, 5]), sd = n === 3 ? triSides(3, 20) : [...Array(n)].map(() => rnd(3, 20)), nm = { 3: 'משולש', 4: 'מרובע', 5: 'מחומש' }[n]; return wordQ(`ל${nm} צלעות באורך ${sd.map(L).join(', ')} ס״מ. מה ההיקף שלו? (בס״מ)`, sd.join('+'), `${sd.join(' + ')} = ${sd.reduce((a, b) => a + b)}`, 'היקף = סכום אורכי כל הצלעות.'); }] },
   { id: 'meas3', name: 'מידות, כסף וזמן', sym: '⌚', c: 'meas', desc: 'מטר וס״מ, ק״ג וגרם, שקל ואגורות, שעון, משך זמן', gens: [
     () => { const m = rnd(2, 9); return Math.random() < .5 ? wordQ(`כמה סנטימטרים יש ב־${L(m)} מטרים?`, `${m}*100`, `במטר 100 ס״מ: ${m} × 100 = ${m * 100}`, 'במטר אחד יש 100 סנטימטרים.', [100]) : wordQ(`כמה מטרים הם ${L(m * 100)} סנטימטרים?`, `${m * 100}/100`, `${m * 100} : 100 = ${m}`, 'במטר אחד יש 100 סנטימטרים.', [100]); },
     () => { const s = rnd(2, 9); return Math.random() < .5 ? wordQ(`כמה אגורות יש ב־${L(s)} שקלים?`, `${s}*100`, `בשקל 100 אגורות: ${s} × 100 = ${s * 100}`, 'בשקל אחד יש 100 אגורות.', [100]) : wordQ(`כמה שקלים הם ${L(s * 100)} אגורות?`, `${s * 100}/100`, `${s * 100} : 100 = ${s}`, 'בשקל אחד יש 100 אגורות.', [100]); },
     () => clockQ(5), () => durQ('min'),
-    () => { const h = rnd(13, 23), ans = `${h - 12} אחר הצהריים`; const opts = shuffle([ans, `${h - 10} אחר הצהריים`, `${h - 12 + 1} אחר הצהריים`, `${h % 10 || 10} בבוקר`]); return Q({ t: 'choice', prompt: `השעה ${L(tm(h, 0))}. איך אומרים אותה בשעון של 12 שעות?`, vis: '', opts: [...new Set(opts)], ans, ex: `${h} − 12 = ${h - 12}`, hint: 'אחרי 12 בצהריים מחסרים 12.', data: { k: 'h24', h } }); }, () => weightQ(1), weightCmpQ] },
+    () => { const h = rnd(13, 23), ans = h12(h); const opts = shuffle([ans, ...shuffle([...new Set([h12(Math.min(23, h + 2)), h12(Math.max(13, h - 1)), `${h - 12} בבוקר`, h12(h > 20 ? h - 3 : h + 3)])].filter(o => o !== ans)).slice(0, 3)]); return Q({ t: 'choice', prompt: `השעה ${L(tm(h, 0))}. איך אומרים אותה בשעון של 12 שעות?`, vis: '', opts, ans, ex: `${h} − 12 = ${h - 12}`, hint: 'אחרי 12 בצהריים מחסרים 12.', data: { k: 'h24', h } }); }, () => weightQ(1), weightCmpQ] },
   { id: 'frac3', name: 'שברים', sym: '½', c: 'div', desc: 'שברים יסודיים (חצי, שליש, רבע...): חלק מצורה, חלק מכמות, השוואה', gens: [() => fracShadeQ([2, 3, 4, 5, 6, 8, 10], true), () => fracPartQ([2, 3, 4, 5, 10], false, true), () => fracPartQ([2, 3, 4], true, true), fracWholeQ, fracCmp3Q] },
   { id: 'chart3', name: 'תרשימים', sym: '▂▅▇', c: 'chart', desc: 'דיאגרמת עמודות בקפיצות גדולות', gens: [() => chartQ([20, 25, 50])] }];
 
@@ -652,7 +664,8 @@ const G4 = [
     () => remQ(9), () => fracPartQ([2, 3, 4, 5, 6, 10], false), () => fracPartQ([2, 3, 4, 5], true),
     () => { const g = rnd(3, 8), k = rnd(3, 9), tot = g * k; return Math.random() < .5 ? wordQ(`${L(tot)} ילדים מתחלקים לקבוצות של ${L(g)}. כמה קבוצות יהיו?`, `${tot}/${g}`, `${tot} : ${g} = ${k}`, 'כמה פעמים הקבוצה נכנסת במספר הילדים? זה חילוק.') : wordQ(`${L(tot)} מדבקות חולקו שווה בשווה ל־${L(g)} ילדים. כמה מדבקות קיבל כל ילד?`, `${tot}/${g}`, `${tot} : ${g} = ${k}`, 'חלוקה שווה בשווה זה חילוק.'); },
     () => { const a = rnd(2, 9); let b; do { b = rnd(2, 9); } while (b === a); const ans = a < b ? '>' : '<'; return Q({ t: 'choice', prompt: 'איזה סימן מתאים?', vis: eq(`${fr(1, a)} ${BOX} ${fr(1, b)}`), opts: ['<', '=', '>'], ans, ex: `כשמחלקים ל־${Math.min(a, b)} חלקים, כל חלק גדול יותר מאשר כשמחלקים ל־${Math.max(a, b)} חלקים.`, hint: 'פיצה שמחולקת ל־2 או פיצה שמחולקת ל־8: איפה החתיכה גדולה יותר?', data: { k: 'fcmp', a: [1, a], b: [1, b] } }); },
-    () => { const d = pick([4, 5, 6, 7, 8, 9, 10]), a = rnd(1, d - 2), b = rnd(1, d - 1 - a); const c = fracChoice([a + b, d], [[a + b, 2 * d], [a * b, d], [a + b + 1, d], [Math.abs(a - b) || 1, d], [a + b, d + d]]); return Q({ t: 'choice', prompt: 'כמה זה?', vis: eq(`${fr(a, d)} + ${fr(b, d)} = ${BOX}`), opts: c.opts, ans: c.ans, ex: `כשהמכנים שווים, מחברים רק את המונים: ${a} + ${b} = ${a + b}. התוצאה: ${c.ans}`, hint: 'המכנה (המספר למטה) נשאר אותו דבר.', data: { k: 'fop', op: '+', a: [a, d], b: [b, d] } }); }] },
+    () => { const d = pick([4, 5, 6, 7, 8, 9, 10]), a = rnd(1, d - 2), b = rnd(1, d - 1 - a), ok = `${a + b}/${d}`; // כיתה ד': בלי צמצום (נלמד בכיתה ה')
+      const c = { ans: ok, opts: shuffle([ok, ...shuffle([...new Set([`${a + b}/${2 * d}`, `${a + b + 1}/${d}`, `${Math.abs(a - b) || a + b + 2}/${d}`, `${a * b}/${d}`, `${a + b}/${d + 1}`])].filter(o => o !== ok)).slice(0, 3)]) }; return Q({ t: 'choice', prompt: 'כמה זה?', vis: eq(`${fr(a, d)} + ${fr(b, d)} = ${BOX}`), opts: c.opts, ans: c.ans, ex: `כשהמכנים שווים, מחברים רק את המונים: ${a} + ${b} = ${a + b}. התוצאה: ${c.ans}`, hint: 'המכנה (המספר למטה) נשאר אותו דבר.', data: { k: 'fop', op: '+', a: [a, d], b: [b, d] } }); }] },
   { id: 'word4', name: 'בעיות מילוליות', sym: '?', c: 'word', desc: 'להבין, לבחור פעולה, לפתור', gens: [...G3[4].gens,
     () => { const g = rnd(3, 6), k = rnd(4, 8), tot = g * k, a = rnd(Math.floor(tot / 3), Math.floor(tot * 2 / 3)); return wordQ(`בכיתה ${L(a)} בנים ו־${L(tot - a)} בנות. המורה חילקה את כולם לקבוצות של ${L(g)}. כמה קבוצות יש?`, `(${a}+${tot - a})/${g}`, `${a} + ${tot - a} = ${tot}, ואז ${tot} : ${g} = ${k}`, 'קודם כמה ילדים יש בכיתה (חיבור), ואחר כך חילוק לקבוצות.'); }] },
   { id: 'geo4', name: 'גאומטריה', sym: '△', c: 'geo', desc: 'מקבילים ומאונכים, זוויות, משולשים, היקף ושטח מלבן, סימטריה, תיבה', gens: [
@@ -728,7 +741,7 @@ const G6 = [
     G5[4].gens[1], G5[4].gens[2]] },
   { id: 'data6', name: 'ממוצע והסתברות', sym: '🎲', c: 'chart', desc: 'ממוצע, סיכוי, תרשימים', gens: [
     G5[3].gens[1],
-    () => { const r = rnd(1, 6), b = rnd(1, 6), g = rnd(0, 4), tot = r + b + g, col = pick(['אדום', 'כחול']), fav = col === 'אדום' ? r : b; const c = fracChoice([fav, tot], [[fav, tot - fav || 1], [1, tot], [tot - fav, tot], [fav, tot + 1], [1, fav + 1]]); return Q({ t: 'choice', prompt: `בשקית ${L(r)} כדורים אדומים, ${L(b)} כחולים${g ? ` ו־${L(g)} ירוקים` : ''}. מוציאים כדור אחד בלי להסתכל. מה הסיכוי שהוא ${col}?`, vis: '', opts: c.opts, ans: c.ans, ex: `${fav} כדורים מתאימים מתוך ${tot}: ${fr(fav, tot)} = ${c.ans}.`, hint: 'סיכוי = מספר האפשרויות המתאימות : מספר כל האפשרויות.', data: { k: 'prob', fav, tot, counts: [r, b, g] } }); },
+    () => { const r = rnd(2, 6), b = rnd(2, 6), g = pick([0, 0, rnd(2, 4)]), tot = r + b + g, col = pick(['אדום', 'כחול']), fav = col === 'אדום' ? r : b; const c = fracChoice([fav, tot], [[fav, tot - fav || 1], [1, tot], [tot - fav, tot], [fav, tot + 1], [1, fav + 1]]); return Q({ t: 'choice', prompt: `בשקית ${L(r)} כדורים אדומים, ${L(b)} כחולים${g ? ` ו־${L(g)} ירוקים` : ''}. מוציאים כדור אחד בלי להסתכל. מה הסיכוי שהוא ${col}?`, vis: '', opts: c.opts, ans: c.ans, ex: `${fav} כדורים מתאימים מתוך ${tot}: ${fr(fav, tot)} = ${c.ans}.`, hint: 'סיכוי = מספר האפשרויות המתאימות : מספר כל האפשרויות.', data: { k: 'prob', fav, tot, counts: [r, b, g] } }); },
     () => chartQ([5, 10, 20, 50])] },
   { id: 'word6', name: 'בעיות מילוליות', sym: '?', c: 'word', desc: 'בעיות בכמה שלבים', gens: [...G5[5].gens,
     () => { const n = rnd(3, 8), p = rnd(15, 60), d = pick([10, 20, 25, 50]), tot = n * p; if (tot * d % 100) return G5[5].gens[0](); return wordQ(`קנו ${L(n)} כרטיסים, כל כרטיס ב־${L(p)} ₪, וקיבלו הנחה של ${L(d + '%')} על הכול. כמה שילמו?`, `${n}*${p}*(100-${d})/100`, `${n} × ${p} = ${tot}. ${d}% מ־${tot} = ${tot * d / 100}. משלמים ${tot} − ${tot * d / 100} = ${tot - tot * d / 100}.`, 'קודם המחיר המלא, אחר כך ההנחה.', [100]); }] }];

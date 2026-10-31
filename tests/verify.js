@@ -243,7 +243,7 @@ const RECOMPUTE = {
     return d.ask === 'area' ? a * b : 2 * (a + b);
   },
   solid: d => ({ 'קובייה': [6, 12, 8], 'תיבה': [6, 12, 8], 'מנסרה משולשת': [5, 9, 6], 'פירמידה מרובעת': [5, 8, 5], 'פירמידה משולשת': [4, 6, 4] })[d.s][d.pi],
-  h24: d => `${d.h - 12} אחר הצהריים`,
+  h24: d => `${d.h - 12} ${d.h < 18 ? 'אחר הצהריים' : d.h < 21 ? 'בערב' : 'בלילה'}`,
   ineqOpt: (d, q) => { const ok = q.opts.filter(o => calc(d.e.replace('?', `(${o})`)) > d.gt); return ok.length === 1 ? ok[0] : undefined; },
   quad: d => {
     // מסווגים לפי הקודקודים: צלעות מקבילות, זווית ישרה, צלעות שוות
@@ -475,6 +475,14 @@ function gradeProblems(subj, g, q) {
   if (g <= 5 && /טרפז/.test(q.prompt) && /שטח/.test(q.prompt)) out.push('trapezoid area is not in the grade 5 core');
   if (g <= 4 && /%/.test(text)) out.push('percent before grade 5');
   if (g === 5 && (text.match(/(\d+)%/g) || []).some(p => ![10, 25, 50].includes(parseInt(p)))) out.push('grade 5 percent: 10%, 25%, 50% only');
+  // שעון: עד כיתה ב' שעון מחוגים בלבד (שעון דיגיטלי ו־24 שעות מכיתה ג')
+  if (g <= 2 && ['dur', 'endtime'].includes(k) && [d.s, d.e].filter(Boolean).some(t => +t.split(':')[0] > 12)) out.push('24-hour time before grade 3');
+  // לוח הכפל בכיתה ב': עד 6×6
+  if (g === 2 && k === 'mtab' && (d.cells || []).some(([r, c]) => r > 6 || c > 6)) out.push('grade 2 times table: up to 6×6');
+  // כיתה ג': גם המסיחים שברים יסודיים
+  if (g === 3 && k === 'fshade' && (q.opts || []).some(o => !/^1\/\d+$/.test(o))) out.push('grade 3 fractions: options must be unit fractions');
+  // כיתה ד': חיבור שברים בלי צמצום (צמצום נלמד בכיתה ה')
+  if (g === 4 && k === 'fop' && d.op === '+' && String(q.ans).split('/')[1] !== String(d.a[1])) out.push('grade 4: fraction answer is reduced (reduction is grade 5)');
   return out;
 }
 /* עברית ואנגלית: הכיתה הראשונה שבה הנושא מופיע בתוכנית.
@@ -487,6 +495,16 @@ const FROM_GRADE = {
   'en-there': 4, 'en-can': 4, 'en-where': 4, 'en-be': 4, 'en-aan': 4, 'en-plural': 4, 'en-pres': 4, 'en-read': 4, 'en-wh': 4,
   'en-poss': 5, 'en-dem': 5, 'en-havegot': 5, 'en-prog': 5, 'en-past': 4, 'en-comp': 6,
 };
+/* בעיות תוכן בכל הכיתות: משולש שלא יכול להתקיים, "1 כדורים", שעות ערב כ"אחר הצהריים", אות גדולה באמצע משפט באנגלית */
+function contentProblems(subj, q) {
+  const out = [], text = (q.prompt + ' ' + (q.vis || '')).replace(/<[^>]+>/g, ' ');
+  const tri = text.match(/משולש[^.?]*?צלעות באורך ([\d, ]+) ס״מ/);
+  if (tri) { const s = tri[1].split(',').map(Number).filter(Boolean); if (s.length === 3 && 2 * Math.max(...s) >= s[0] + s[1] + s[2]) out.push('triangle that cannot exist'); }
+  if (/(^|[^\d])1\s+[א-ת]+(ים|ות)(?![א-ת])/.test(text.replace(/[\u2066-\u2069\u200e\u200f]/g, ''))) out.push('"1" before a plural noun');
+  if (q.data && q.data.k === 'h24' && q.data.h >= 18 && /אחר הצהריים/.test(q.ans)) out.push('evening hour called אחר הצהריים');
+  if (subj === 'english' && /, (My|The|Our|Your|His|Her|Their|You|We|They|He|She) /.test(text)) out.push('capital letter after a comma');
+  return out;
+}
 function langGradeProblems(subj, g, q) {
   if (subj === 'math' || !q.data) return [];
   const out = [], k = q.data.k;
@@ -517,7 +535,7 @@ for (const [subj, M] of ENGINES) {
         const ks = kinds.get(k) || { total: 0, recomputed: 0 }; ks.total++;
         for (const p of generalProblems(q)) note(`${subj} ${g}/${t.id}/${k}: ${p.replace(/[\d.]+/g, '#')}`, q);
         for (const p of speechProblems(q)) note(`${subj} ${g}/${t.id}/${k}: ${p}`, q);
-        for (const p of [...gradeProblems(subj, +g, q), ...langGradeProblems(subj, +g, q)]) note(`${subj} ${g}/${t.id}/${k}: ${p}`, q);
+        for (const p of [...gradeProblems(subj, +g, q), ...langGradeProblems(subj, +g, q), ...contentProblems(subj, q)]) note(`${subj} ${g}/${t.id}/${k}: ${p}`, q);
         const r = recomputeProblem(q);
         if (q.data && RECOMPUTE[q.data.k]) ks.recomputed++;
         if (r) note(`${subj} ${g}/${t.id}/${k}: ${r.startsWith('checker') ? r.replace(/[\d.]+/g, '#') : 'wrong answer'}`, q);
@@ -532,12 +550,22 @@ for (const [subj, M] of ENGINES) {
 
 for (const p of wordListProblems()) note(`english word list: ${p}`, null);
 
-// לוח כפל מלא להשלמה: משבצות שונות, בתוך 10×10, בכמות הנכונה (40 בכיתה ב', 60 מכיתה ג')
+// לוח כפל מלא להשלמה: משבצות שונות, בתוך הלוח, בכמות הנכונה (6×6 עם 16 בכיתה ב', 10×10 עם 60 מכיתה ג')
 const MATH = ENGINES[0][1];
 for (const g of [2, 3, 4]) for (let i = 0; i < 200; i++) {
   const B = MATH.tableBoard(g), keys = new Set(B.blanks.map(([r, c]) => r + ',' + c));
-  if (B.n !== 10 || B.blanks.length !== (g <= 2 ? 40 : 60) || keys.size !== B.blanks.length || B.blanks.some(([r, c]) => r < 1 || r > 10 || c < 1 || c > 10))
+  const n = g <= 2 ? 6 : 10;
+  if (B.n !== n || B.blanks.length !== (g <= 2 ? 16 : 60) || keys.size !== B.blanks.length || B.blanks.some(([r, c]) => r < 1 || r > n || c < 1 || c > n))
     note(`math ${g}/mtab board: bad blanks`, null);
+}
+
+{
+  let n = 0, b = 0;
+  for (const t of MATH.GRADES[2].topics) for (const gen of t.gens) for (let i = 0; i < 300; i++) {
+    const q = gen(), v = q.vg, m = v ? (v[2] === '−' ? [0, v[0], v[1]] : null) : String((q.data && q.data.e) || '').match(/^(\d+)-(\d+)$/);
+    if (m && +m[2] >= 10) { n++; if (+m[1] % 10 < +m[2] % 10) b++; }
+  }
+  if (n && (b / n < .2 || b / n > .6)) note(`math 2: subtraction with regrouping is ${Math.round(b / n * 100)}% of subtractions (want 20%–60%)`, null);
 }
 
 const unchecked = [...kinds].filter(([, v]) => v.recomputed === 0).map(([k]) => k);

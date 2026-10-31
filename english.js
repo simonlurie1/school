@@ -217,7 +217,7 @@ function ing(v) {
 const PS = [['play', 'football every day'], ['read', 'a book every night'], ['eat', 'pizza on Fridays'], ['swim', 'in the pool every morning'],
   ['watch', 'TV after school'], ['go', 'to school by bus'], ['do', 'homework every day'], ['have', 'a big dog'], ['fly', 'a kite at the beach'],
   ['study', 'English on Mondays'], ['wash', 'the dishes after dinner'], ['drink', 'milk every morning'], ['sing', 'in the shower'],
-  ['ride', 'a bike to school'], ['walk', 'to the park'], ['cook', 'dinner on Saturdays'], ['live', 'in Haifa'], ['catch', 'the bus at eight'],
+  ['walk', 'to the park'], ['cook', 'dinner on Saturdays'], ['live', 'in Haifa'], ['catch', 'the bus at eight'],
   ['teach', 'English'], ['like', 'ice cream'], ['fix', 'old bikes'], ['brush', 'teeth twice a day'], ['finish', 'school at two']];
 function presentQ() {
   const [s, t] = pick(SUBJ), [v, rest] = pick(PS), ans = t === 's' ? third(v) : v, sent = `${s} ${BLANK} (${v}) ${rest}.`;
@@ -226,8 +226,8 @@ function presentQ() {
     hint: `${EN('he, she, it')} ← מוסיפים ${EN('s')}: ${EN('she plays')}. ${EN('I, you, we, they')} ← בלי ${EN('s')}: ${EN('they play')}.`, data: { k: 'en-pres', s, t, v } });
 }
 // הווה מתמשך
-const PROG = [['play', 'football'], ['read', 'a book'], ['eat', 'an apple'], ['swim', 'in the pool'], ['run', 'in the park'], ['dance', 'at the party'],
-  ['write', 'a letter'], ['ride', 'a bike'], ['sing', 'a song'], ['sleep', 'on the sofa'], ['cook', 'dinner'], ['watch', 'TV'], ['drink', 'juice'],
+const PROG = [['play', 'football'], ['read', 'in the garden'], ['eat', 'lunch'], ['swim', 'in the pool'], ['run', 'in the park'], ['dance', 'at the party'],
+  ['write', 'a letter'], ['ride', 'in the park'], ['sing', 'a song'], ['sleep', 'on the sofa'], ['cook', 'dinner'], ['watch', 'TV'], ['drink', 'juice'],
   ['sit', 'on the floor'], ['jump', 'on the bed'], ['draw', 'a picture'], ['fly', 'a kite'], ['make', 'a cake'], ['clean', 'the room'],
   ['wash', 'the car'], ['listen', 'to music'], ['get', 'dressed'], ['stop', 'the car']];
 function progQ() {
@@ -258,7 +258,8 @@ const PAST = [['go', 'to the beach'], ['eat', 'a sandwich'], ['see', 'a big lion
   ['cry', 'at the end of the movie'], ['try', 'a new game'], ['stop', 'at the red light'], ['plan', 'a trip'], ['drop', 'the ball'], ['hug', 'the dog'],
   ['carry', 'a heavy bag'], ['finish', 'the book']];
 function pastQ() {
-  const s = pick(SUBJ)[0].replace(/^(You|We|They|He|She)$/, x => x.toLowerCase()), [v, rest] = pick(PAST), ans = past(v), sent = `Yesterday, ${s} ${BLANK} (${v}) ${rest}.`;
+  // אחרי "Yesterday," אות קטנה, חוץ מ־I ומשמות
+  const s = pick(SUBJ)[0].replace(/^(?!I$|Dan|Noa)\w/, x => x.toLowerCase()), [v, rest] = pick(PAST), ans = past(v), sent = `Yesterday, ${s} ${BLANK} (${v}) ${rest}.`;
   const wrong = [v, third(v), ing(v)].concat(/e$/.test(v) ? [] : [v + 'ed']);
   return Q({ prompt: 'השלימו את המשפט בזמן עבר', vis: big(sent), say: sayText(sent), opts: withOpts(ans, wrong), ans,
     ex: `${EN(`Yesterday, ${s} ${ans} ${rest}.`)} ${IRR_PAST[v] ? `${EN(v)} הוא פועל יוצא דופן: ${EN(`${v} → ${ans}`)}.` : `פועל רגיל: מוסיפים ${EN('ed')} (${EN(`${v} → ${ans}`)}).`}`,
@@ -400,8 +401,10 @@ function rhymeQ() {
     ex: `${EN(`${w} – ${ans}`)}: שתיהן נגמרות באותו צליל.`, hint: 'אמרו את המילים בקול. מילים מתחרזות נשמעות אותו דבר בסוף.', data: { k: 'en-rhyme', w } });
 }
 // have got / has got
+// דברים שהגיוני שלילד או למשפחה יש ("has got a dog", לא "a shoe" או "a bus")
+const HAVE = new Set(['dog', 'cat', 'bird', 'horse', 'rabbit', 'turtle', 'book', 'pencil', 'bag', 'ball', 'bike', 'computer', 'hat', 'phone', 'umbrella', 'guitar', 'camera', 'gift', 'key']);
 function haveGotQ() {
-  const [s, t] = pick(SUBJ), w = pick(countable(2)), thing = `${/^[aeiou]/.test(w.en) ? 'an' : 'a'} ${w.en}`, ans = t === 's' ? 'has got' : 'have got';
+  const [s, t] = pick(SUBJ), w = pick(countable(2).filter(x => HAVE.has(x.en))), thing = `${/^[aeiou]/.test(w.en) ? 'an' : 'a'} ${w.en}`, ans = t === 's' ? 'has got' : 'have got';
   const sent = `${s} ${BLANK} ${thing}.`;
   return Q({ prompt: `בחרו: ${EN('have got')} או ${EN('has got')}`, vis: stack(pic(w.e), big(sent)), say: sayText(sent), opts: ['have got', 'has got'], ans,
     ex: `${EN(`${s} ${ans} ${thing}.`)}`, hint: `${EN('he, she, it')} ואדם אחד ← ${EN('has got')}. ${EN('I, you, we, they')} ← ${EN('have got')}.`, data: { k: 'en-havegot', s } });
