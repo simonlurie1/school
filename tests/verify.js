@@ -463,9 +463,7 @@ function gradeProblems(subj, g, q) {
   if (GRADE_MAX[g] && k !== 'mtab') { const big = (text.replace(/(\d),(\d{3})/g, '$1$2').match(/\d+/g) || []).map(Number).filter(n => n > GRADE_MAX[g]); if (big.length) out.push(`number above grade range (${GRADE_MAX[g]})`); }
   if (g === 1 && k === 'dur' && [d.s, d.e].some(t => +t.split(':')[0] > 12 || +t.split(':')[1] !== 0)) out.push('grade 1 time: whole hours up to 12 only');
   if (g <= 3 && k === 'expr' && /\//.test(d.e)) { const m = d.e.match(/(\d+)\/(\d+)/); if (m && +m[1] >= 100 && ![10, 100, 1000].includes(+m[2])) out.push('grade 1-3 division: dividend under 100 only'); }
-  if (g === 3 && ['fshade', 'fpart'].includes(k) && (d.n > 1 || (k === 'fshade' && !String(q.ans).startsWith('1/')))) out.push('grade 3 fractions: unit fractions only');
-  if (g === 3 && k === 'fcmp' && (d.a[0] !== 1 || d.b[0] !== 1)) out.push('grade 3 fractions: unit fractions only');
-  if (g <= 2 && /fshade|fpart|fcmp|fwhole|fop/.test(k)) out.push('fractions before grade 3');
+  if (g <= 3 && /fshade|fpart|fcmp|fwhole|fop/.test(k)) out.push('fractions before grade 4 (postponed from grade 3, per the focus document)');
   if (g <= 2 && k === 'tri') out.push('triangle types before grade 3');
   if (g <= 3 && (k === 'area' || ((k === 'grid' || k === 'rect') && d.ask === 'area'))) out.push('area in cm² before grade 4');
   if (g <= 4 && k === 'quad') out.push('classifying quadrilaterals before grade 5');
@@ -479,8 +477,6 @@ function gradeProblems(subj, g, q) {
   if (g <= 2 && ['dur', 'endtime'].includes(k) && [d.s, d.e].filter(Boolean).some(t => +t.split(':')[0] > 12)) out.push('24-hour time before grade 3');
   // לוח הכפל בכיתה ב': עד 6×6
   if (g === 2 && k === 'mtab' && (d.cells || []).some(([r, c]) => r > 6 || c > 6)) out.push('grade 2 times table: up to 6×6');
-  // כיתה ג': גם המסיחים שברים יסודיים
-  if (g === 3 && k === 'fshade' && (q.opts || []).some(o => !/^1\/\d+$/.test(o))) out.push('grade 3 fractions: options must be unit fractions');
   // כיתה ד': חיבור שברים בלי צמצום (צמצום נלמד בכיתה ה')
   if (g === 4 && k === 'fop' && d.op === '+' && String(q.ans).split('/')[1] !== String(d.a[1])) out.push('grade 4: fraction answer is reduced (reduction is grade 5)');
   return out;

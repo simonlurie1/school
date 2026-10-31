@@ -343,7 +343,7 @@ function symAxesQ() {
     hint: 'חפשו קווים שמחלקים את הצורה לשני חצאים שהם תמונת ראי זה של זה. נסו גם קווים באלכסון.', data: { k: 'symaxes', name, P } });
 }
 
-/* ===== שברים ראשונים (כיתה ג') ===== */
+/* ===== שברים ראשונים (מכיתה ד'; לפי מסמך המיקוד, השברים היסודיים נדחים מכיתה ג') ===== */
 /* צורה מחולקת ל־d חלקים שווים, n מהם צבועים: פס או עיגול */
 function fracSvg(n, d, kind, scatter) {
   const on = new Set(scatter ? shuffle([...Array(d).keys()]).slice(0, n) : [...Array(n).keys()]); let s = '';
@@ -636,7 +636,6 @@ const G3 = [
     () => { const s = rnd(2, 9); return Math.random() < .5 ? wordQ(`כמה אגורות יש ב־${L(s)} שקלים?`, `${s}*100`, `בשקל 100 אגורות: ${s} × 100 = ${s * 100}`, 'בשקל אחד יש 100 אגורות.', [100]) : wordQ(`כמה שקלים הם ${L(s * 100)} אגורות?`, `${s * 100}/100`, `${s * 100} : 100 = ${s}`, 'בשקל אחד יש 100 אגורות.', [100]); },
     () => clockQ(5), () => durQ('min'),
     () => { const h = rnd(13, 23), ans = h12(h); const opts = shuffle([ans, ...shuffle([...new Set([h12(Math.min(23, h + 2)), h12(Math.max(13, h - 1)), `${h - 12} בבוקר`, h12(h > 20 ? h - 3 : h + 3)])].filter(o => o !== ans)).slice(0, 3)]); return Q({ t: 'choice', prompt: `השעה ${L(tm(h, 0))}. איך אומרים אותה בשעון של 12 שעות?`, vis: '', opts, ans, ex: `${h} − 12 = ${h - 12}`, hint: 'אחרי 12 בצהריים מחסרים 12.', data: { k: 'h24', h } }); }, () => weightQ(1), weightCmpQ] },
-  { id: 'frac3', name: 'שברים', sym: '½', c: 'div', desc: 'שברים יסודיים (חצי, שליש, רבע...): חלק מצורה, חלק מכמות, השוואה', gens: [() => fracShadeQ([2, 3, 4, 5, 6, 8, 10], true), () => fracPartQ([2, 3, 4, 5, 10], false, true), () => fracPartQ([2, 3, 4], true, true), fracWholeQ, fracCmp3Q] },
   { id: 'chart3', name: 'תרשימים', sym: '▂▅▇', c: 'chart', desc: 'דיאגרמת עמודות בקפיצות גדולות', gens: [() => chartQ([20, 25, 50])] }];
 
 /* ===== כיתה ד' (תוכנית 2006) ===== */
@@ -660,8 +659,8 @@ const G4 = [
     () => { const a = rnd(3, 9), q = rnd(3, 9); return missQ(`?/${a}`, `${q}`, null, `איזה מספר מחולק ל־${L(a)} נותן ${L(q)}? נסו ${L(`${q} × ${a}`)}.`, a * q); },
     () => { const a = rnd(3, 9), b = a * rnd(4, 9) + rnd(1, a - 1), ans = Math.floor((b - 1) / a); return Q({ t: 'num', prompt: 'מה המספר הגדול ביותר שאפשר לכתוב במשבצת?', vis: eq(`${a} × ${BOX} &lt; ${b}`), ans, ex: `${a} × ${ans} = ${a * ans} קטן מ־${b}, אבל ${a} × ${ans + 1} = ${a * (ans + 1)} כבר לא.`, hint: `נסו מספרים: ${L(`${a} × 5`)}, ${L(`${a} × 6`)}... עד שעוברים את ${L(b)}.`, data: { k: 'ineqMax', e: `${a}*?`, lt: b } }); },
     () => { const a = rnd(15, 60), b = rnd(a + 20, a + 80), lim = b - a, ok = lim + rnd(1, 15), bads = [...new Set([lim, lim - rnd(1, 8), lim - rnd(9, 20)].filter(x => x > 0))]; return Q({ t: 'choice', prompt: 'איזה מספר מתאים למשבצת?', vis: eq(`${BOX} + ${a} &gt; ${b}`), opts: shuffle([ok, ...bads].map(String)), ans: String(ok), ex: `${ok} + ${a} = ${ok + a}, וזה גדול מ־${b}.`, hint: `בדקו כל אפשרות: הוסיפו ${L(a)} וראו אם יוצא יותר מ־${L(b)}.`, data: { k: 'ineqOpt', e: `?+${a}`, gt: b } }); }] },
-  { id: 'frac4', name: 'חילוק, שארית ושברים', sym: '½', c: 'div', desc: 'שארית, שבר מכמות, השוואת שברים, חיבור שברים', gens: [
-    () => remQ(9), () => fracPartQ([2, 3, 4, 5, 6, 10], false), () => fracPartQ([2, 3, 4, 5], true),
+  { id: 'frac4', name: 'חילוק, שארית ושברים', sym: '½', c: 'div', desc: 'שארית, חלק מצורה, שבר מכמות, השוואת שברים, חיבור שברים', gens: [
+    () => remQ(9), () => fracShadeQ([2, 3, 4, 5, 6, 8, 10]), fracWholeQ, () => fracPartQ([2, 3, 4, 5, 6, 10], false), () => fracPartQ([2, 3, 4, 5], true),
     () => { const g = rnd(3, 8), k = rnd(3, 9), tot = g * k; return Math.random() < .5 ? wordQ(`${L(tot)} ילדים מתחלקים לקבוצות של ${L(g)}. כמה קבוצות יהיו?`, `${tot}/${g}`, `${tot} : ${g} = ${k}`, 'כמה פעמים הקבוצה נכנסת במספר הילדים? זה חילוק.') : wordQ(`${L(tot)} מדבקות חולקו שווה בשווה ל־${L(g)} ילדים. כמה מדבקות קיבל כל ילד?`, `${tot}/${g}`, `${tot} : ${g} = ${k}`, 'חלוקה שווה בשווה זה חילוק.'); },
     () => { const a = rnd(2, 9); let b; do { b = rnd(2, 9); } while (b === a); const ans = a < b ? '>' : '<'; return Q({ t: 'choice', prompt: 'איזה סימן מתאים?', vis: eq(`${fr(1, a)} ${BOX} ${fr(1, b)}`), opts: ['<', '=', '>'], ans, ex: `כשמחלקים ל־${Math.min(a, b)} חלקים, כל חלק גדול יותר מאשר כשמחלקים ל־${Math.max(a, b)} חלקים.`, hint: 'פיצה שמחולקת ל־2 או פיצה שמחולקת ל־8: איפה החתיכה גדולה יותר?', data: { k: 'fcmp', a: [1, a], b: [1, b] } }); },
     () => { const d = pick([4, 5, 6, 7, 8, 9, 10]), a = rnd(1, d - 2), b = rnd(1, d - 1 - a), ok = `${a + b}/${d}`; // כיתה ד': בלי צמצום (נלמד בכיתה ה')
