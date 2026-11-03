@@ -353,9 +353,10 @@ function speechOf(q){
   return parts;
 }
 const CAN_SAY=CAN_SPEAK||CLOUD;
+function stopSay(){SAY_ID++;AUDIO.pause();if(CAN_SPEAK)try{speechSynthesis.cancel()}catch(e){}}
 
 /* ---------- מסכים ---------- */
-function stopAll(){clearInterval(TICK);TICK=null;const md=document.getElementById('muldlg');if(md&&md.open)md.close();SAY_ID++;AUDIO.pause();if(CAN_SPEAK)try{speechSynthesis.cancel()}catch(e){}}
+function stopAll(){clearInterval(TICK);TICK=null;const md=document.getElementById('muldlg');if(md&&md.open)md.close();stopSay()}
 function home(){
   stopAll();S=null;app.style.removeProperty('--tc');
   app.innerHTML=`
@@ -536,6 +537,7 @@ function choose(btn){
 const PRAISE=['כל הכבוד!','מצוין!','בול!','אלופים!','נכון מאוד!','יפה מאוד!'];
 function stopTimer(res){clearInterval(TICK);TICK=null;if(!S||S.t0==null)return;const sec=Math.max(1,Math.round((Date.now()-S.t0)/1000)),q=S.qs[S.i];S.log[S.i]={sec,res,q};S.t0=null;const t=document.getElementById('timer');if(t){t.textContent='⏱ '+mmss(sec);t.classList.add('stop')}}
 function check(ok){
+  stopSay();  // ענו — לא ממשיכים להקריא את השאלה
   const q=S.qs[S.i];
   if(ok){S.done=true;stopTimer(S.tries===0?'star':'second');
     if(S.tries===0){S.stars++;const st=document.getElementById('st');st.classList.remove('pop');void st.offsetWidth;st.classList.add('pop');st.nextElementSibling.innerHTML=L(S.stars)}
