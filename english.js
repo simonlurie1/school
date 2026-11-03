@@ -102,7 +102,7 @@ function abcSeqQ() {
   const from = rnd(0, 21), miss = rnd(1, 3), seq = ABC.slice(from, from + 5).split(''), ans = seq[miss];
   const shown = seq.map((c, i) => i === miss ? '<span class="box">?</span>' : c).join(' ');
   const pool = ABC.slice(Math.max(0, from - 3), from + 8).split('');
-  return Q({ prompt: 'איזו אות חסרה?', vis: big(shown), opts: withOpts(ans, pool), ans,
+  return Q({ prompt: 'איזו אות חסרה?', vis: big(shown), say: seq.map((c, i) => i === miss ? '…' : c).join(', '), opts: withOpts(ans, pool), ans,
     ex: `${EN(seq.join(' '))}`, hint: 'אמרו את ה־ABC בקול מההתחלה.', data: { k: 'en-seq', from, miss } });
 }
 function firstLetterQ(lvMax) {

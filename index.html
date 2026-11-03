@@ -340,7 +340,9 @@ function htmlParts(html){
 }
 const PUNCT_NAME={'?':'סימן שאלה','!':'סימן קריאה','.':'נקודה',',':'פסיק','<':'קטן מ','>':'גדול מ','=':'שווה'};
 // כל השאלה: ההוראה, המשפט או המילה, והאפשרויות
-function speechOf(q){
+function speechOf(q,full){
+  // אנגלית א'–ג': רק המילה באנגלית, בלי ההוראות בעברית; ובלי מילה לשמוע (תמונה ← מילה) רק האפשרויות באנגלית
+  if(SUBJ==='eng'&&GRADE<=3&&!full)return q.say?[{text:q.say,lang:'en'}]:speechOf(q,true).filter(p=>p.lang==='en');
   const parts=htmlParts(q.prompt),vis=q.vis&&!q.vis.includes('<svg')?q.vis:'';
   if(/class="enw"/.test(vis))parts.push({text:q.say||toSpeech(vis).replace(/_+/g,'…'),lang:'en'});
   else if(vis.replace(/<div class="pic"[^>]*>.*?<\/div>/g,'').replace(/<[^>]+>/g,'').trim())parts.push(...htmlParts(vis.replace(/<div class="pic"[^>]*>.*?<\/div>/g,'')));

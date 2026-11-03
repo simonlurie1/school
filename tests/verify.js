@@ -441,7 +441,7 @@ const FS = require('fs'), ROOT = require('path').join(__dirname, '..');
 const TTS_SRC = FS.readFileSync(ROOT + '/api/tts.js', 'utf8'), PAGE = FS.readFileSync(ROOT + '/index.html', 'utf8');
 const TTS_TEXT = eval(TTS_SRC.match(/const ALLOWED_TEXT = (.*);/)[1]), TTS_MAX = +TTS_SRC.match(/const MAX_CHARS = (\d+)/)[1];
 const pageCode = (from, to) => { const i = PAGE.indexOf(from); return PAGE.slice(i, PAGE.indexOf(to, i)); };
-// speechOf בדף קורא את המקצוע הנוכחי מהמשתנה הגלובלי SUBJ
+// speechOf בדף קורא את המקצוע והכיתה מהמשתנים הגלובליים SUBJ ו־GRADE
 const speechOf = new Function(pageCode('function toSpeech', '// קול הדפדפן') + pageCode('function htmlParts', 'const CAN_SAY') + 'return speechOf;')();
 function speechProblems(q) {
   const p = [];
@@ -521,6 +521,7 @@ function note(key, q) {
 for (const [subj, M] of ENGINES) {
   globalThis.SUBJ = { math: 'math', english: 'eng', hebrew: 'heb' }[subj];
   for (const g of Object.keys(M.GRADES)) {
+    globalThis.GRADE = +g;
     const topics = M.GRADES[g].topics;
     for (const t of topics) {
       for (let i = 0; i < PER_TOPIC; i++) {
